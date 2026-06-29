@@ -319,11 +319,10 @@ function drawChartMonster(kind,ox,oy,w,h,frame,f,code,side){
   const fb=Math.abs(Math.sin(frame))*1.5;
   fEll(ox+4,oy+h-4+fb,8,5,'#3a3f4a');fEll(ox+w-12,oy+h-4-fb,8,5,'#3a3f4a');
   const ed=f>=0?1.2:-1.2;
-  // Bold, color-coded sprite icon (green/✓ for do, red/✗ for dont). It bakes in
-  // the card, frame and badge, so it reads clearly at small size — draw it large
-  // and self-contained, no separate white card or eyes needed.
-  const icon=ruleChartImage(code,side,'icon');
-  if(icon){ drawChartImageFit(icon,ox-2,oy-4,w+4,h+1); return; }
+  // Neutral "screen monster": Do and Don't share the EXACT same chrome (frame,
+  // eyes, colour) so nothing telegraphs the verdict — no green/red, no check/cross.
+  // Only the chart INSIDE differs (clean monochrome vs colourful clutter), so the
+  // player has to actually read the chart to tell a good one from a bad one.
   const img=ruleChartImage(code,side);
   if(kind==='pie'&&!img){
     const cx=ox+w/2, cy=oy+(h-4)/2, r=Math.min(w-4,h-6)/2;
@@ -335,12 +334,19 @@ function drawChartMonster(kind,ox,oy,w,h,frame,f,code,side){
     sCir(cx-6,ey,3.6,'#5a6678',0.8);sCir(cx+6,ey,3.6,'#5a6678',0.8);
     return;
   }
-  fRRect(ox+1,oy,w-2,h-4,4,'#fdfdfd');
-  ctx.strokeStyle='#5a6678';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(ox+1,oy,w-2,h-4,4);ctx.stroke();
-  if(!(img&&drawChartImageFit(img,ox+4,oy+11,w-8,h-19)))drawChartGlyph(kind,ox+4,oy+11,w-8,h-19);
-  fCir(ox+11,oy+7,3.6,'#fff');fCir(ox+w-11,oy+7,3.6,'#fff');
-  fCir(ox+11+ed,oy+7,1.7,'#1a1a1a');fCir(ox+w-11+ed,oy+7,1.7,'#1a1a1a');
-  sCir(ox+11,oy+7,3.6,'#5a6678',0.8);sCir(ox+w-11,oy+7,3.6,'#5a6678',0.8);
+  // soft drop shadow + neutral bezel (identical for both sides)
+  fRRect(ox+3,oy+4,w-2,h-4,5,'rgba(0,0,0,0.16)');
+  fRRect(ox+1,oy,w-2,h-4,5,'#eef1f5');
+  ctx.strokeStyle='#3a4250';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(ox+1,oy,w-2,h-4,5);ctx.stroke();
+  // inner screen — chart fills almost the whole card so it reads clearly
+  const sx=ox+3, sy=oy+9, sw=w-6, sh=h-15;
+  fRRect(sx,sy,sw,sh,2,'#ffffff');
+  ctx.strokeStyle='#cfd5de';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(sx,sy,sw,sh,2);ctx.stroke();
+  if(!(img&&drawChartImageFit(img,sx+1,sy+1,sw-2,sh-2)))drawChartGlyph(kind,sx+1,sy+1,sw-2,sh-2);
+  // googly eyes on the top bezel (identical for both sides)
+  fCir(ox+11,oy+5,3.4,'#fff');fCir(ox+w-11,oy+5,3.4,'#fff');
+  fCir(ox+11+ed,oy+5,1.6,'#1a1a1a');fCir(ox+w-11+ed,oy+5,1.6,'#1a1a1a');
+  sCir(ox+11,oy+5,3.4,'#5a6678',0.8);sCir(ox+w-11,oy+5,3.4,'#5a6678',0.8);
 }
 
 // ===== STATS =====

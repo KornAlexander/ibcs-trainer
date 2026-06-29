@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>IBCS Chart Tinder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif}
+canvas{border-radius:8px;box-shadow:0 0 60px rgba(80,160,255,0.25);max-width:100vw;max-height:100vh;touch-action:none}
+#nameContainer{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:none}
+#nameContainer input{font-size:18px;padding:10px 15px;border-radius:8px;border:2px solid #60a8ff;background:rgba(20,30,50,0.9);color:#fff;text-align:center;width:240px}
+</style>
+</head><body>
+<canvas id="c" width="900" height="600" tabindex="0"></canvas>
+<div id="nameContainer">
+  <label style="color:#fff;font-size:20px;display:block;margin-bottom:12px">Enter your name:</label>
+  <input id="playerNameInput" type="text" maxlength="20" placeholder="Player" />
+  <div style="margin-top:12px;color:#aaa;font-size:14px">Press Enter to start</div>
+</div>
+<pre id="gameStats" style="display:none"></pre>
+<script src="ibcs_rules.js"></script>
+<script src="ibcs_charts.js"></script>
+<script src="ibcs_stats.js"></script>
+<script src="ibcs_mobile.js"></script>
+<script>
+(() => {
+"use strict";
+const cv = document.getElementById('c'), ctx = cv.getContext('2d', { alpha:false });
+const W = 900, H = 600;
+if (window.IBCSMobile) window.IBCSMobile.makeResponsive(cv);
+const charts = IBCSCharts(ctx);
+const {RULES} = window.IBCS;
+
+// ---------- text helpers ----------
+function txt(t,size,x,y,c,center,bold){ctx.fillStyle=c;ctx.font=(bold?'bold ':'')+size+"px 'Segoe UI',system-ui,sans-serif";ctx.textAlign=center?'center':'left';ctx.textBaseline='alphabetic';ctx.fillText(t,x,y);ctx.textAlign='left';}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+// word-wrap into lines that fit maxW; returns array of lines.
+function wrap(t,size,maxW){ctx.font=size+"px 'Segoe UI',system-ui,sans-serif";const words=String(t).split(' ');const lines=[];let cur='';for(const w of words){const test=cur?cur+' '+w:w;if(ctx.measureText(test).width>maxW&&cur){lines.push(cur);cur=w;}else cur=test;}if(cur)lines.push(cur);return lines;}
+
+// ---------- game state ----------
+let state='title';           // title | playing | feedback | over
+let playerName='';
+let deck=[];                 // shuffled queue of {rule, compliant}
+let card=null;               // current card
+let score=0, combo=0, best=0, lives=3;
+let answered=0, correct=0, violationsCaught=0;
+let startTime=0;
+const ROUND_TIME=9;          // seconds per card
+let cardTimer=ROUND_TIME;
+let dragX=0, dragging=false, dragStart=0, autoFly=0; // autoFly: -1 left, +1 right
+let feedback=null, feedbackT=0;
+let titleAnim=0;
+const keys={};
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildDeck(){
+  deck=shuffle(RULES.slice()).map(r=>({rule:r, compliant:Math.random()<0.5}));
+}
+function nextCard(){
+  if(deck.length===0){ endGame(true); return; }
+  card=deck.pop(); cardTimer=ROUND_TIME; dragX=0; dragging=false; autoFly=0;
+}
+function startGame(){
+  score=0;combo=0;best=0;lives=3;answered=0;correct=0;violationsCaught=0;
+  startTime=performance.now(); buildDeck(); state='playing'; nextCard();
+}
+
+// answer: guess = true means player says "compliant"
+function answer(guess){
+  if(state!=='playing'||!card) return;
+  answered++;
+  const right = (guess === card.compliant);
+  if(right){
+    correct++; combo++; best=Math.max(best,combo);
+    score += 10 + (combo-1)*5;
+    if(!card.compliant) violationsCaught++;
+  }else{
+    combo=0; lives--;
+  }
+  feedback={right, rule:card.rule, shown:card.compliant};
+  feedbackT = right ? 0.7 : 2.0;
+  state='feedback';
+  if(lives<=0){ /* let feedback show, then end */ feedback.last=true; }
+}
+
+function endGame(won){
+  state='over';
+  const dur=(performance.now()-startTime)/1000;
+  publishRayfinStats({
+    player_name: playerName||'Player',
+    duration_seconds: Math.round(dur*10)/10,
+    score, won,
+    lives_left: Math.max(0,lives),
+    deaths_total: answered-correct,
+    coins_collected: correct,
+    enemies_stomped: violationsCaught,
+    attacks_used: answered,
+    final_form: 'swipe',
+    level_reached: answered,
+  });
+}
+
+// ---------- input ----------
+addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(state==='title'){ /* handled by name flow */ return; }
+  if(state==='over'){ if(e.code==='KeyR'){ startGame(); } return; }
+  if(state==='playing'){
+    if(e.code==='ArrowLeft'||e.code==='KeyA'){ autoFly=-1; setTimeout(()=>answer(false),120); }
+    else if(e.code==='ArrowRight'||e.code==='KeyD'){ autoFly=1; setTimeout(()=>answer(true),120); }
+  }
+});
+addEventListener('keyup',e=>{keys[e.code]=false;});
+
+function canvasXY(e){const r=cv.getBoundingClientRect();const px=(e.touches?e.touches[0].clientX:e.clientX)-r.left;const py=(e.touches?e.touches[0].clientY:e.clientY)-r.top;return{x:px*(W/r.width),y:py*(H/r.height)};}
+function pointerDown(e){
+  const {x,y}=canvasXY(e);
+  if(state==='title'){ return; }
+  if(state==='over'){ startGame(); return; }
+  if(state!=='playing') return;
+  // buttons row
+  if(y>H-90){ if(x<W/2){ autoFly=-1; answer(false);} else { autoFly=1; answer(true);} return; }
+  dragging=true; dragStart=x;
+}
+function pointerMove(e){ if(dragging){ const {x}=canvasXY(e); dragX=x-dragStart; e.preventDefault&&e.preventDefault(); } }
+function pointerUp(){
+  if(!dragging) return; dragging=false;
+  if(dragX>110){ autoFly=1; answer(true); }
+  else if(dragX<-110){ autoFly=-1; answer(false); }
+  else { dragX=0; }
+}
+cv.addEventListener('mousedown',pointerDown); cv.addEventListener('mousemove',pointerMove); addEventListener('mouseup',pointerUp);
+cv.addEventListener('touchstart',pointerDown,{passive:false}); cv.addEventListener('touchmove',pointerMove,{passive:false}); addEventListener('touchend',pointerUp);
+
+// ---------- name entry ----------
+const nameBox=document.getElementById('nameContainer'), nameInput=document.getElementById('playerNameInput');
+cv.addEventListener('click',()=>{ if(state==='title'){ nameBox.style.display='block'; nameInput.focus(); } });
+nameInput.addEventListener('keydown',e=>{ if(e.code==='Enter'){ playerName=nameInput.value.trim()||'Player'; nameBox.style.display='none'; startGame(); } });
+
+// ---------- drawing ----------
+function bg(){ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#141d33'); g.addColorStop(1,'#0a0a1a'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+
+function drawCard(){
+  const cw=380, ch=380;
+  const cx=W/2 + dragX, cy=255;
+  const rot=dragX*0.0011;
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(rot);
+  // card body
+  ctx.fillStyle='#fbfdff'; rr(-cw/2,-ch/2,cw,ch,18); ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='#dde3ec'; ctx.stroke();
+  // chart inside
+  const k = card.compliant ? card.rule.good : card.rule.enemyKind;
+  charts.glyph(k, -cw/2+44, -ch/2+44, cw-88, ch-150, card.rule.code, card.compliant ? 'do' : 'dont');
+  // label
+  txt(card.rule.pillar+' · '+card.rule.sub, 15, 0, ch/2-66, '#5a6678', true, true);
+  txt(card.rule.title, 17, 0, ch/2-42, '#1a2230', true, true);
+  txt(card.rule.code, 13, 0, ch/2-20, '#90a0b5', true, false);
+  // swipe hint stamps
+  const a=Math.min(1,Math.abs(dragX)/110);
+  if(dragX>8){ ctx.save();ctx.globalAlpha=a;ctx.strokeStyle='#37a76a';ctx.lineWidth=4;rr(-cw/2+20,-ch/2+20,150,52,8);ctx.stroke();txt('COMPLIANT',20,-cw/2+95,-ch/2+54,'#37a76a',true,true);ctx.restore(); }
+  if(dragX<-8){ ctx.save();ctx.globalAlpha=a;ctx.strokeStyle='#e23b3b';ctx.lineWidth=4;rr(cw/2-170,-ch/2+20,150,52,8);ctx.stroke();txt('VIOLATES',20,cw/2-95,-ch/2+54,'#e23b3b',true,true);ctx.restore(); }
+  ctx.restore();
+}
+
+function drawHUD(){
+  txt('SCORE '+score, 20, 24, 40, '#fff', false, true);
+  txt('Combo x'+(combo+1), 14, 24, 62, combo>0?'#37d67a':'#7a8499', false, false);
+  // lives
+  for(let i=0;i<3;i++){ ctx.fillStyle=i<lives?'#e23b3b':'#3a3f4a'; ctx.beginPath(); const hx=W-40-i*30, hy=36; ctx.moveTo(hx,hy+4); ctx.bezierCurveTo(hx,hy,hx-8,hy-2,hx-8,hy+5); ctx.bezierCurveTo(hx-8,hy+12,hx,hy+14,hx,hy+18); ctx.bezierCurveTo(hx,hy+14,hx+8,hy+12,hx+8,hy+5); ctx.bezierCurveTo(hx+8,hy-2,hx,hy,hx,hy+4); ctx.fill(); }
+  txt('Cards left: '+deck.length, 13, W-24, 66, '#7a8499', false, false); ctx.textAlign='left';
+  // timer bar
+  const tw=(cardTimer/ROUND_TIME); ctx.fillStyle='#1c2740'; rr(W/2-190,96,380,8,4); ctx.fill();
+  ctx.fillStyle=tw<0.3?'#e23b3b':'#60a8ff'; rr(W/2-190,96,380*Math.max(0,tw),8,4); ctx.fill();
+}
+
+function drawButtons(){
+  // left = violates, right = compliant
+  ctx.fillStyle='rgba(226,59,59,0.15)'; rr(W/2-200,H-86,180,56,12); ctx.fill();
+  ctx.strokeStyle='#e23b3b'; ctx.lineWidth=2; rr(W/2-200,H-86,180,56,12); ctx.stroke();
+  txt('✗  Violates  (←)', 17, W/2-110, H-52, '#e23b3b', true, true);
+  ctx.fillStyle='rgba(55,167,106,0.15)'; rr(W/2+20,H-86,180,56,12); ctx.fill();
+  ctx.strokeStyle='#37a76a'; ctx.lineWidth=2; rr(W/2+20,H-86,180,56,12); ctx.stroke();
+  txt('Compliant ✓ (→)', 17, W/2+110, H-52, '#37d67a', true, true);
+}
+
+function drawTitle(){
+  bg();
+  txt('IBCS CHART TINDER', 44, W/2, 180, '#fff', true, true);
+  txt('Swipe right on compliant charts · left on the violations', 18, W/2, 222, 'rgba(96,168,255,0.9)', true, false);
+  const lines=['A chart appears. Decide fast:','→ / swipe right  =  follows IBCS (a "Do")','← / swipe left   =  breaks IBCS (a "Don\u2019t")','Build combos, keep your 3 lives, clear the deck of '+RULES.length+' rules.'];
+  let y=290; for(const l of lines){ txt(l,16,W/2,y,'rgba(255,255,255,0.75)',true,false); y+=30; }
+  const a=Math.sin(titleAnim*3)*0.3+0.7; ctx.save(); ctx.globalAlpha=a; txt('Click to enter your name',20,W/2,H-110,'#fff',true,true); ctx.restore();
+}
+
+function drawFeedback(){
+  // keep the card frozen behind a banner
+  drawHUD(); drawCard(); drawButtons();
+  const r=feedback;
+  const bh=150, by=H/2-bh/2;
+  ctx.fillStyle='rgba(8,12,24,0.82)'; ctx.fillRect(0,by,W,bh);
+  ctx.fillStyle=r.right?'#37d67a':'#e23b3b'; ctx.fillRect(0,by,6,bh);
+  const verdict = r.right ? 'Correct!' : 'Not quite.';
+  const truth = r.shown ? 'That chart is COMPLIANT.' : 'That chart VIOLATES IBCS.';
+  txt(verdict+'  '+truth, 22, W/2, by+34, r.right?'#37d67a':'#ff7a7a', true, true);
+  txt(r.rule.code+' — '+r.rule.title, 15, W/2, by+62, '#cfe0ff', true, true);
+  txt('DO: '+r.rule.do, 14, W/2, by+92, '#9fe6bd', true, false);
+  const dl=wrap("DON'T: "+r.rule.dont,14,W-120); txt(dl[0], 14, W/2, by+116, '#f3b0b0', true, false);
+}
+
+function drawOver(){
+  bg();
+  const dur=((performance.now()-startTime)/1000);
+  const won = lives>0;
+  txt(won?'DECK CLEARED!':'OUT OF LIVES', 40, W/2, 150, won?'#37d67a':'#ff7a7a', true, true);
+  txt('Final score: '+score, 26, W/2, 210, '#fff', true, true);
+  const acc = answered? Math.round(correct/answered*100):0;
+  const rows=[['Cards answered',answered],['Correct',correct+'  ('+acc+'%)'],['Best combo','x'+(best+1)],['Violations caught',violationsCaught],['Time',Math.round(dur)+'s']];
+  let y=262; for(const [k,v] of rows){ txt(k,16,W/2-150,y,'#9fb0c8',false,false); ctx.textAlign='right'; txt(String(v),16,W/2+150,y,'#fff',false,true); ctx.textAlign='left'; y+=30; }
+  const a=Math.sin(titleAnim*3)*0.3+0.7; ctx.save(); ctx.globalAlpha=a; txt('Press R or click to play again',18,W/2,H-90,'#fff',true,true); ctx.restore();
+}
+
+// ---------- loop ----------
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now; titleAnim+=dt;
+  if(state==='playing'){
+    cardTimer-=dt;
+    if(autoFly!==0){ dragX += autoFly*900*dt; }
+    if(cardTimer<=0){ autoFly = card.compliant?-1:1; answer(!card.compliant); }
+  } else if(state==='feedback'){
+    if(autoFly!==0){ dragX += autoFly*900*dt; }
+    feedbackT-=dt;
+    if(feedbackT<=0){
+      if(feedback&&feedback.last){ endGame(false); }
+      else { state='playing'; nextCard(); }
+    }
+  }
+  bg();
+  if(state==='title') drawTitle();
+  else if(state==='playing'){ drawHUD(); if(card) drawCard(); drawButtons(); }
+  else if(state==='feedback'){ drawFeedback(); }
+  else if(state==='over') drawOver();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+})();
+</script>
+</body></html>

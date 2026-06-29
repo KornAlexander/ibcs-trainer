@@ -158,9 +158,9 @@ function drawCard(){
   // card body
   ctx.fillStyle='#fbfdff'; rr(-cw/2,-ch/2,cw,ch,18); ctx.fill();
   ctx.lineWidth=2; ctx.strokeStyle='#dde3ec'; ctx.stroke();
-  // chart inside
-  const k = card.compliant ? card.rule.good : card.rule.enemyKind;
-  charts.glyph(k, -cw/2+44, -ch/2+44, cw-88, ch-150, card.rule.code, card.compliant ? 'do' : 'dont');
+  // chart inside — matched do/don't pair: identical neutral style, only the
+  // genuine IBCS violation differs (no colour/bitmap tell).
+  charts.pair(card.rule, card.compliant, -cw/2+44, -ch/2+44, cw-88, ch-150);
   // label
   txt(card.rule.pillar+' · '+card.rule.sub, 15, 0, ch/2-66, '#5a6678', true, true);
   txt(card.rule.title, 17, 0, ch/2-42, '#1a2230', true, true);

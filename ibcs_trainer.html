@@ -399,14 +399,15 @@ let unlockedForms=['sparky','bigrest'];
 const nameInput=document.getElementById('playerNameInput');
 const nameContainer=document.getElementById('nameContainer');
 // ----- Cheat codes -----
-// 1) Press L then type a level number (1-16) to jump there (commits on Enter, 2nd digit, or short pause).
+// 1) Press L then type a level number (e.g. L 1 1 -> level 11) to warp there.
+//    Commits on Enter, on the 2nd digit, or after a short pause. Range 1..RULE_COUNT.
 // 2) Type "leben" while playing to refill all lost lives.
 let cheatLevelMode=false, cheatLevelBuf='', cheatLevelTO=null, cheatWord='';
 let cheatMsg='', cheatMsgTimer=0;
 function armCheatTimeout(){if(cheatLevelTO)clearTimeout(cheatLevelTO);cheatLevelTO=setTimeout(commitCheatLevel,700);}
 function commitCheatLevel(){if(cheatLevelTO){clearTimeout(cheatLevelTO);cheatLevelTO=null;}if(cheatLevelBuf)jumpToLevel(parseInt(cheatLevelBuf,10));cheatLevelMode=false;cheatLevelBuf='';}
 function handleCheatKey(e){
-  if(state!=='playing'&&state!=='levelcomplete'){cheatLevelMode=false;cheatLevelBuf='';return;}
+  if(state!=='playing'&&state!=='levelcomplete'&&state!=='intro'){cheatLevelMode=false;cheatLevelBuf='';return;}
   const k=e.key;
   if(k==='l'||k==='L'){cheatLevelMode=true;cheatLevelBuf='';armCheatTimeout();}
   else if(cheatLevelMode&&k>='0'&&k<='9'){cheatLevelBuf+=k;armCheatTimeout();if(cheatLevelBuf.length>=2)commitCheatLevel();}
@@ -1639,7 +1640,7 @@ function advanceLevel(){
   loadLevel();player.score=savedScore;player.lives=savedLives;
 }
 function jumpToLevel(n){ // cheat: warp to any level, keeping score & lives
-  if(state!=='playing'&&state!=='levelcomplete')return;
+  if(state!=='playing'&&state!=='levelcomplete'&&state!=='intro')return;
   n=clampLvl(n);
   currentLevel=n;stats.levelReached=max(stats.levelReached||1,n);
   const cfg=LEVELS[currentLevel-1];

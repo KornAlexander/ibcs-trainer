@@ -46,7 +46,7 @@ let startTime=0;
 const ROUND_TIME=9;          // seconds per card
 let cardTimer=ROUND_TIME;
 let dragX=0, dragging=false, dragStart=0, autoFly=0; // autoFly: -1 left, +1 right
-let feedback=null, feedbackT=0;
+let feedback=null, feedbackT=0, feedbackTotalT=0;
 let titleAnim=0;
 const keys={};
 
@@ -57,6 +57,14 @@ function buildDeck(){
 function nextCard(){
   if(deck.length===0){ endGame(true); return; }
   card=deck.pop(); cardTimer=ROUND_TIME; dragX=0; dragging=false; autoFly=0;
+}
+// Advance past the feedback banner early (after a short grace so the answering
+// gesture doesn't instantly skip the explanation).
+function advanceFeedback(){
+  if(state!=='feedback') return;
+  if(feedbackTotalT - feedbackT < 0.35) return;
+  if(feedback&&feedback.last){ endGame(false); }
+  else { state='playing'; nextCard(); }
 }
 function startGame(){
   score=0;combo=0;best=0;lives=3;answered=0;correct=0;violationsCaught=0;
@@ -76,7 +84,8 @@ function answer(guess){
     combo=0; lives--;
   }
   feedback={right, rule:card.rule, shown:card.compliant};
-  feedbackT = right ? 0.7 : 2.0;
+  feedbackT = right ? 2.4 : 4.5;
+  feedbackTotalT = feedbackT;
   state='feedback';
   if(lives<=0){ /* let feedback show, then end */ feedback.last=true; }
 }
@@ -107,6 +116,7 @@ addEventListener('keydown',e=>{
     if(e.code==='ArrowLeft'||e.code==='KeyA'){ autoFly=-1; setTimeout(()=>answer(false),120); }
     else if(e.code==='ArrowRight'||e.code==='KeyD'){ autoFly=1; setTimeout(()=>answer(true),120); }
   }
+  else if(state==='feedback'){ advanceFeedback(); }
 });
 addEventListener('keyup',e=>{keys[e.code]=false;});
 
@@ -115,6 +125,7 @@ function pointerDown(e){
   const {x,y}=canvasXY(e);
   if(state==='title'){ return; }
   if(state==='over'){ startGame(); return; }
+  if(state==='feedback'){ advanceFeedback(); return; }
   if(state!=='playing') return;
   // buttons row
   if(y>H-90){ if(x<W/2){ autoFly=-1; answer(false);} else { autoFly=1; answer(true);} return; }
@@ -204,6 +215,10 @@ function drawFeedback(){
   txt(r.rule.code+' — '+r.rule.title, 15, W/2, by+62, '#cfe0ff', true, true);
   txt('DO: '+r.rule.do, 14, W/2, by+92, '#9fe6bd', true, false);
   const dl=wrap("DON'T: "+r.rule.dont,14,W-120); txt(dl[0], 14, W/2, by+116, '#f3b0b0', true, false);
+  if(feedbackTotalT - feedbackT >= 0.35){
+    const a=Math.sin(titleAnim*4)*0.25+0.6; ctx.save(); ctx.globalAlpha=a;
+    txt('tap / press → to continue', 12, W/2, by+bh-12, '#9fb0c8', true, true); ctx.restore();
+  }
 }
 
 function drawOver(){

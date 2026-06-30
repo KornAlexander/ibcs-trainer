@@ -190,6 +190,11 @@ function saveUnlockedSubs(){
 function unlockSub(idx){ if(idx>=0 && idx<SUBSTAGES.length && !unlockedSubs.has(idx)){ unlockedSubs.add(idx); saveUnlockedSubs(); } }
 function isSubUnlocked(idx){ return unlockedSubs.has(idx); }
 function unlockedSubsCsv(){ return [...unlockedSubs].sort((a,b)=>a-b).map(i=>SUBSTAGES[i]?SUBSTAGES[i].code:('#'+i)).join(','); }
+// ISO 24896 vault memorised flag — persisted like the substage unlocks so the
+// CHECK-floor vault stays "done" across reloads (stats.isoMemorized is transient).
+const ISO_SAVE_KEY = 'ibcsTrainerIsoMemorized';
+let isoMemorizedSaved = (()=>{ try { return localStorage.getItem(ISO_SAVE_KEY)==='1'; } catch(_) { return false; } })();
+function saveIsoMemorized(){ isoMemorizedSaved=true; try { localStorage.setItem(ISO_SAVE_KEY,'1'); } catch(_) {} }
 
 // ===== HOST PROGRESS BRIDGE (Rayfin) =====
 // When embedded in the Rayfin host, completed substages/stages are persisted to
@@ -1880,7 +1885,7 @@ function updateIsoRoom(){
     }
     // Solved?
     if(isoDigits.every((d,i)=>d===ISO_CODE[i])){
-      isoSolved=true;stats.isoMemorized=true;sfxWin();shake(4,12);
+      isoSolved=true;stats.isoMemorized=true;saveIsoMemorized();sfxWin();shake(4,12);
       emit(isoDoor.x+isoDoor.w/2,isoDoor.y+40,30,1.5,3,30,4,'#37d67a',0.02);
     }
   }
@@ -1889,7 +1894,7 @@ function updateIsoRoom(){
   // Walk through the open door -> standard memorized, return to the IBCS Tower
   if(isoSolved){isoWinTimer++;
     if(player.rect.l>isoDoor.x+isoDoor.w&&isoWinTimer>20){
-      stats.isoMemorized=true;sfxWin();openLevelSelect();cheatMsg='ISO 24896 memorized!';cheatMsgTimer=150;return;
+      stats.isoMemorized=true;saveIsoMemorized();sfxWin();openLevelSelect();cheatMsg='ISO 24896 memorized!';cheatMsgTimer=150;return;
     }
   }
   targetCamX=player.rect.cx-W/3;targetCamX=max(0,targetCamX);camX=lerp(camX,targetCamX,CAM_LERP);
@@ -2012,11 +2017,14 @@ function highestUnlockedLevel(){
 }
 function roomLevel(f,r){ return floorFirstLevel(f)+r; }       // rule rooms only (not the ISO vault)
 function roomUnlocked(f,r){
-  if(isIsoRoom(f,r)) return stats.levelReached>=42; // unlocks after the 3 Notation stages (level 42)
+  // ISO vault unlocks once the 3 Notation stages (levels 1-42) are CLEARED.
+  // Use the persisted substage unlocks (highestUnlockedLevel) — NOT the transient
+  // stats.levelReached, which resets to 1 on every fresh load.
+  if(isIsoRoom(f,r)) return highestUnlockedLevel()>=43;
   return isSubUnlocked(ibcsRule(roomLevel(f,r)).subGlobal);
 }
 function roomDone(f,r){
-  if(isIsoRoom(f,r)) return !!stats.isoMemorized;
+  if(isIsoRoom(f,r)) return isoMemorizedSaved || !!stats.isoMemorized;
   return roomLevel(f,r)<=stats.levelReached;
 }
 
@@ -2515,7 +2523,7 @@ function loop(){
   }else if(state==='levelselect'){
     updateLevelSelect();drawLevelSelect();
   }else if(state==='isoroom'){
-    updateIsoRoom();if(state==='isoroom')drawIsoRoom();else{drawGameOver(tick);winSfxPlayed=won;}
+    updateIsoRoom();if(state==='isoroom')drawIsoRoom();else if(state==='gameover'){drawGameOver(tick);winSfxPlayed=won;}
   }else if(state==='intro'){
     drawGame();drawIntro();
     if(keys.Enter||keys.NumpadEnter||keys.Space){keys.Enter=false;keys.NumpadEnter=false;keys.Space=false;initAudio();beginLevel();}

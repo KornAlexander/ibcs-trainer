@@ -5,6 +5,7 @@
 <title>IBCS Trainer — Learn Chart Design by Playing</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Three browser mini-games that teach the IBCS SUCCESS rules for business charts: a rule platformer, Chart Swipe and an escape room.">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
@@ -21,6 +22,8 @@
   /* ---------- menu ---------- */
   #menu{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
         padding:32px 20px 48px;width:100%}
+  .logo{width:88px;height:88px;margin-bottom:8px;
+        filter:drop-shadow(0 8px 22px rgba(48,104,220,.45))}
   .brand{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.16em;
          text-transform:uppercase;color:var(--muted);margin-bottom:14px}
   .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
@@ -67,6 +70,7 @@
 <body>
 
   <main id="menu">
+    <img class="logo" src="logo.svg" width="88" height="88" alt="IBCS Trainer Arcade logo" decoding="async">
     <div class="brand"><span class="dot"></span>Actionable Reporting · Learn by Playing</div>
     <h1>The <span class="hl">IBCS</span> Trainer Arcade</h1>
     <p class="sub">Three browser mini-games that teach the <strong>IBCS&reg; SUCCESS</strong> rules for

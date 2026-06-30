@@ -571,6 +571,8 @@ const INTRO_BTN={x:W/2-170,y:346,w:340,h:52};
 // Title-screen action buttons (mouse): Start/Continue and IBCS Tower.
 const TITLE_PLAY={x:W/2-208,y:474,w:198,h:46};
 const TITLE_TOWER={x:W/2+10,y:474,w:198,h:46};
+// IBCS Tower: on-screen zoom-out / overview toggle (mouse + touch friendly).
+const TOWER_ZOOM={x:W-150,y:H-70,w:122,h:26};
 cv.addEventListener('keydown',e=>{keys[e.code]=true; if(e.code==='KeyF')atkQueued=true; if(e.code==='KeyG')guitarAtkQueued=true; anyKey=true; handleCheatKey(e); e.preventDefault();});
 cv.addEventListener('keyup',e=>{keys[e.code]=false; e.preventDefault();});
 // On the title a plain click only focuses the canvas (so the keyboard S / Enter
@@ -589,6 +591,10 @@ cv.addEventListener('pointerdown',e=>{
   if(state!=='levelselect')return;
   const r=cv.getBoundingClientRect();
   const mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
+  // Zoom-out / overview toggle button (screen-space): see the whole tower or zoom back in.
+  if(mx>=TOWER_ZOOM.x&&mx<=TOWER_ZOOM.x+TOWER_ZOOM.w&&my>=TOWER_ZOOM.y&&my<=TOWER_ZOOM.y+TOWER_ZOOM.h){
+    initAudio(); towerMode=(towerMode==='overview')?'focus':'overview'; menuCd=12; return;
+  }
   const bx=tcamX+(mx-W/2)/tscale, by=tcamY+(my-H/2)/tscale;
   for(let f=0;f<8;f++){ const n=floorRoomCount(f);
     for(let rr=0;rr<n;rr++){ const q=roomRect(f,rr);
@@ -2294,6 +2300,12 @@ function drawLevelSelect(){
     dText(unlocked?(roomDone(selFloor,selRoom)?'✓ Cleared — replay anytime':'Available'):'🔒 Locked',12,32,py+58,unlocked?'#5be08c':'#ff9a6a',false,false,false);
   }
   dText('↑↓ floor   ←→ room   Enter start   Space overview   Q back',12,W-374,py+44,'rgba(255,255,255,0.55)',false,false,false);
+
+  // Zoom-out / whole-tower pill (mouse + touch). Toggles the overview camera.
+  const zoomOn=(towerMode==='overview'||towerMode==='intro');
+  fRRect(TOWER_ZOOM.x,TOWER_ZOOM.y,TOWER_ZOOM.w,TOWER_ZOOM.h,8,zoomOn?'rgba(144,168,255,0.30)':'rgba(255,255,255,0.10)');
+  ctx.save();ctx.strokeStyle='rgba(144,168,255,0.65)';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(TOWER_ZOOM.x,TOWER_ZOOM.y,TOWER_ZOOM.w,TOWER_ZOOM.h,8);ctx.stroke();ctx.restore();
+  dText(zoomOn?'+  Zoom in':'−  Whole tower',12,TOWER_ZOOM.x+TOWER_ZOOM.w/2,TOWER_ZOOM.y+13,'#cdd9ff',true,false,true);
 
   if(cheatMsgTimer>0){ ctx.save(); ctx.globalAlpha=min(1,cheatMsgTimer/30);
     fRRect(W/2-180,py-34,360,26,8,'rgba(40,12,12,0.9)');

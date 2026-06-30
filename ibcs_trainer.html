@@ -511,9 +511,14 @@ function handleCheatKey(e){
 }
 // Approval button shown on the level-intro (rule summary) screen.
 const INTRO_BTN={x:W/2-170,y:346,w:340,h:52};
+// Title-screen action buttons (mouse): Start/Continue and IBCS Tower.
+const TITLE_PLAY={x:W/2-208,y:474,w:198,h:46};
+const TITLE_TOWER={x:W/2+10,y:474,w:198,h:46};
 cv.addEventListener('keydown',e=>{keys[e.code]=true; if(e.code==='KeyF')atkQueued=true; if(e.code==='KeyG')guitarAtkQueued=true; anyKey=true; handleCheatKey(e); e.preventDefault();});
 cv.addEventListener('keyup',e=>{keys[e.code]=false; e.preventDefault();});
-cv.addEventListener('click',()=>{cv.focus();initAudio();if(state!=='intro')anyKey=true;});
+// On the title a plain click only focuses the canvas (so the keyboard S / Enter
+// shortcuts stay reachable even when a saved name would otherwise auto-start).
+cv.addEventListener('click',()=>{cv.focus();initAudio();if(state!=='intro'&&state!=='title')anyKey=true;});
 // Click the explicit approval button on the level-intro screen to begin the level.
 cv.addEventListener('pointerdown',e=>{
   if(state!=='intro')return;
@@ -537,6 +542,19 @@ cv.addEventListener('pointerdown',e=>{
         return;
       }
     }
+  }
+});
+// Title screen: explicit buttons (Start/Continue and IBCS Tower). A plain click
+// elsewhere only focuses, so these are the mouse path into the game / tower.
+cv.addEventListener('pointerdown',e=>{
+  if(state!=='title')return;
+  const r=cv.getBoundingClientRect();
+  const mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
+  const hit=b=>mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h;
+  if(hit(TITLE_TOWER)){ initAudio(); openLevelSelect(); return; }
+  if(hit(TITLE_PLAY)){ initAudio();
+    if(playerName){ winSfxPlayed=false; startGame(); }
+    else { cv.style.display='none'; nameContainer.style.display='block'; nameInput.value=''; nameInput.focus(); }
   }
 });
 nameInput.addEventListener('keydown',e=>{
@@ -2229,8 +2247,15 @@ function drawTitle(tick){
   let cy=224;
   for(const[key,desc]of controls){fRRect(W/2-180,cy-4,360,24,6,'rgba(255,255,255,0.05)');
     dText(key,14,W/2-10,cy+8,'#90caf9',true,false,true);dText(desc,12,W/2+100,cy+8,'rgba(255,255,255,0.6)',false,false,false);cy+=27;}
-  const cta=sin(titleAnim*3)*0.3+0.7;ctx.save();ctx.globalAlpha=cta;dText('Click to enter your name',20,W/2,H-92,'#fff',true,true,true);ctx.restore();
-  dText('Press S — IBCS Tower (explore floors & rooms, jump into any unlocked level)',13,W/2,H-58,'#90caf9',true,false,true);
+  // Clickable action buttons — keyboard Enter/Space also starts, S opens the tower.
+  const pulse=(0.6+sin(titleAnim*3)*0.4).toFixed(2);
+  fRRect(TITLE_PLAY.x,TITLE_PLAY.y,TITLE_PLAY.w,TITLE_PLAY.h,10,'rgba(55,214,122,0.16)');
+  ctx.save();ctx.strokeStyle='rgba(55,214,122,'+pulse+')';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(TITLE_PLAY.x,TITLE_PLAY.y,TITLE_PLAY.w,TITLE_PLAY.h,10);ctx.stroke();ctx.restore();
+  dText(playerName?'\u25B6 Continue':'\u25B6 Start Game',16,TITLE_PLAY.x+TITLE_PLAY.w/2,TITLE_PLAY.y+30,'#bdeccb',true,false,true);
+  fRRect(TITLE_TOWER.x,TITLE_TOWER.y,TITLE_TOWER.w,TITLE_TOWER.h,10,'rgba(144,168,255,0.16)');
+  ctx.save();ctx.strokeStyle='rgba(144,168,255,'+pulse+')';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(TITLE_TOWER.x,TITLE_TOWER.y,TITLE_TOWER.w,TITLE_TOWER.h,10);ctx.stroke();ctx.restore();
+  dText('\u{1F3E2} IBCS Tower',16,TITLE_TOWER.x+TITLE_TOWER.w/2,TITLE_TOWER.y+30,'#cdd9ff',true,false,true);
+  dText('Click a button \u00b7 or press Enter to play \u00b7 S for the IBCS Tower',12,W/2,H-30,'rgba(255,255,255,0.55)',true,false,true);
 }
 
 // ===== LEVEL COMPLETE — LEARNING SUMMARY =====

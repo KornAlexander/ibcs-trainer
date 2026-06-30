@@ -152,7 +152,10 @@
     b.addEventListener('click', function(){ launch(b.getAttribute('data-src')); });
   });
   document.getElementById('back').addEventListener('click', function(){
-    if (location.hash === '#play') history.back(); else home();
+    home();
+    // Clear the #play hash directly (history.back() is unreliable once the
+    // iframe load + pushState have stacked extra session-history entries).
+    try { if (location.hash === '#play') history.replaceState(null, '', location.pathname + location.search); } catch(e){}
   });
   // browser back button returns to the menu instead of leaving the page
   window.addEventListener('popstate', function(){

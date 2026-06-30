@@ -25,12 +25,22 @@ canvas{border-radius:8px;box-shadow:0 0 60px rgba(80,160,255,0.25);max-width:100
 "use strict";
 const cv = document.getElementById('c'), ctx = cv.getContext('2d', { alpha:false });
 const W = 600, H = 900;          // portrait: card-swipe plays upright on mobile
-// Render the backing buffer ABOVE the displayed size so the CSS up-scaling done
-// by makeResponsive() never blurs the text / vector charts. All drawing stays in
-// logical 600x900 coords; loop() re-applies the matching transform each frame.
-const SS = Math.max(1.5, Math.min(2.5, (window.devicePixelRatio || 1) * 1.6));
-cv.width = Math.round(W * SS); cv.height = Math.round(H * SS);
 if (window.IBCSMobile) window.IBCSMobile.makeResponsive(cv, { orientation:'portrait' });
+// Crisp on every display: makeResponsive() sets the canvas CSS size to fit the
+// viewport; we then size the pixel buffer to THAT displayed size x devicePixelRatio
+// (recomputed on resize / zoom / monitor change), so the canvas is never up-scaled
+// and never blurry — on phones or big desktop monitors alike. All drawing stays in
+// logical 600x900 coords; loop() applies ctx.setTransform(cv.width/W,0,0,cv.height/H).
+function hidpi(){
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const cssW = parseFloat(cv.style.width) || cv.clientWidth || W;
+  const bw = Math.max(W, Math.round(cssW * dpr));
+  const bh = Math.round(bw * H / W);   // keep exact 2:3 so the transform stays uniform
+  if (cv.width !== bw || cv.height !== bh){ cv.width = bw; cv.height = bh; }
+}
+hidpi();
+addEventListener('resize', hidpi, { passive:true });
+addEventListener('orientationchange', () => setTimeout(hidpi, 260), { passive:true });
 const charts = IBCSCharts(ctx);
 const {RULES} = window.IBCS;
 

@@ -96,7 +96,59 @@ const FORM_DATA = {
 };
 
 // ===== IBCS SUCCESS — shared rule registry (see ibcs_rules.js) =====
-const {STAGES, RULES, SUBSTAGES, RULE_COUNT, ibcsRule, clampLvl, stageOf, subGlobalOf, isSubEnd, isStageEnd} = window.IBCS;
+// PLATFORMER-ONLY "IBCS 3.0" bonus stage. It is appended to *local copies* of the
+// registry so the shared ibcs_rules.js (and therefore the swipe + escape-room
+// games) keep exactly their original 98 rules. The helpers are redefined locally
+// to span the extended 103-rule set.
+const IBCS30_STAGE = {
+  pillar:'IBCS 3.0', area:'Bonus', world:'The Innovation Lab',
+  color:'#ffd24a', theme:'ocean', form:'shellbit', art:{e:'flatList',g:'indentList'},
+  subs:[{ code:'I3', title:'Beyond IBCS 2.0 — modern report craft', rules:[
+    ['I3.1','Layer the report: Overview \u2192 Exploration \u2192 Details',
+      'Structure a report in clear layers: an Overview page, an Exploration page to slice freely, and Detail pages for the specifics',
+      'Dump every chart onto one flat page with no reading path',{e:'flatList',g:'indentList'}],
+    ['I3.2','Enable writeback',
+      'Let users commit values back to the source (plan, comment, approve) right where they read the data',
+      'Force users to export to Excel and email changed numbers around',{e:'numTable',g:'sparkTable'}],
+    ['I3.3','Ship data apps that act (Fabric Apps)',
+      'Wrap the report in an app that both shows data and triggers actions \u2014 re-run, notify, approve',
+      'Leave the report as a dead-end view with no way to act on it',{e:'textSlide',g:'dataSlide'}],
+    ['I3.4','Show live data (Direct Lake)',
+      'Read fresh data live from the lake so the audience always sees the current state',
+      'Present stale, manually-refreshed snapshots as if they were live',{e:'oneHuge',g:'smallMultiples'}],
+    ['I3.5','Add Copilot / AI annotations',
+      'Let AI draft the narrative and surface anomalies \u2014 then verify before you ship',
+      'Paste unverified AI commentary, or hide the data behind a chatbot',{e:'observeOnly',g:'recommend'}],
+  ]}],
+};
+const STAGES = window.IBCS.STAGES.concat([IBCS30_STAGE]);
+const RULES = window.IBCS.RULES.slice();
+const SUBSTAGES = window.IBCS.SUBSTAGES.slice();
+(function appendBonusStage(){
+  const si = STAGES.length - 1, st = IBCS30_STAGE;
+  st.subs.forEach((sub, sj) => {
+    const firstLvl = RULES.length + 1;
+    SUBSTAGES.push({stageIdx:si, subIdx:sj, code:sub.code, title:sub.title,
+      pillar:st.pillar, world:st.world, color:st.color, firstLvl});
+    sub.rules.forEach(r => {
+      const art = r[4] || st.art;
+      RULES.push({
+        lvl: RULES.length + 1, stageIdx: si, subIdx: sj, subGlobal: SUBSTAGES.length - 1,
+        code: r[0], title: r[1], do: r[2], dont: r[3],
+        enemyKind: art.e, good: art.g,
+        pillar: st.pillar, area: st.area, sub: sub.code, subTitle: sub.title, world: st.world,
+        slogan: r[2] + '  —  not: ' + r[3],
+      });
+    });
+  });
+})();
+const RULE_COUNT = RULES.length; // 103 (98 base IBCS 2.0 + 5 IBCS 3.0 bonus)
+function clampLvl(lvl){ return Math.max(1, Math.min(RULE_COUNT, lvl|0)); }
+function ibcsRule(lvl){ return RULES[(clampLvl(lvl)-1)] || RULES[0]; }
+function stageOf(lvl){ return ibcsRule(lvl).stageIdx; }
+function subGlobalOf(lvl){ return ibcsRule(lvl).subGlobal; }
+function isSubEnd(lvl){ const r=ibcsRule(lvl), n=ibcsRule(lvl+1); return lvl>=RULE_COUNT || n.subGlobal!==r.subGlobal; }
+function isStageEnd(lvl){ const r=ibcsRule(lvl), n=ibcsRule(lvl+1); return lvl>=RULE_COUNT || n.stageIdx!==r.stageIdx; }
 
 // ----- Per-level engine config, generated from the rules + difficulty curve -----
 const LEVELS = RULES.map((r, i) => {
@@ -1755,7 +1807,9 @@ function completeLevel(){
   state='levelcomplete';completeTimer=0;sfxLevelUp();
 }
 function advanceLevel(){
-  if(currentLevel>=RULE_COUNT){ enterIsoRoom(); return; } // final boss cleared -> ISO 24896 room
+  if(currentLevel>=RULE_COUNT){ // IBCS 3.0 finale cleared -> win + certified
+    state='gameover';won=true;stats.ibcsCertified=true;stats.finalize(player,true);stats.publish();sfxWin();return;
+  }
   currentLevel++;stats.levelReached=Math.max(stats.levelReached,currentLevel);
   const nextCfg=LEVELS[currentLevel-1];
   player.form=nextCfg.form;
@@ -1786,13 +1840,14 @@ function switchForm(){
 function respawn(){player.rect.x=50;player.rect.y=H-130;player.vy=0;player.invincible=90;}
 
 // ===== ISO 24896 MEMORY ROOM =====
-// Placed right after the final boss. The player sees "ISO 24896" once, walks on,
-// then must set 5 jump-blocks to the digits 2-4-8-9-6 to unlock the vault door.
+// A side-quest vault reached from the CHECK floor of the IBCS Tower once the three
+// Notation stages are cleared. The player sees "ISO 24896" once, walks on, then
+// must set 5 jump-blocks to the digits 2-4-8-9-6 to unlock the vault door. Solving
+// it returns to the tower (it is no longer the game's finale).
 const ISO_CODE=[2,4,8,9,6];
 let isoBlocks=[],isoDoor=null,isoPlats=[],isoReveal=0,isoSolved=false,isoWinTimer=0,isoDigits=[0,0,0,0,0];
 function enterIsoRoom(){
   initAudio();
-  stats.ibcsCertified=true; // reaching this room means the final boss is beaten
   state='isoroom';tick=0;camX=0;particles.length=0;isoSolved=false;isoWinTimer=0;isoReveal=210;
   const roomLen=2000;
   isoPlats=[new Rect(0,GROUND,roomLen,50)];
@@ -1831,10 +1886,10 @@ function updateIsoRoom(){
   }
   // Fall safety
   if(player.rect.t>H+100){player.rect.x=40;player.rect.y=GROUND-PH;player.vy=0;}
-  // Walk through the open door -> finish the game, certified
+  // Walk through the open door -> standard memorized, return to the IBCS Tower
   if(isoSolved){isoWinTimer++;
     if(player.rect.l>isoDoor.x+isoDoor.w&&isoWinTimer>20){
-      state='gameover';won=true;stats.finalize(player,true);stats.publish();sfxWin();return;
+      stats.isoMemorized=true;sfxWin();openLevelSelect();cheatMsg='ISO 24896 memorized!';cheatMsgTimer=150;return;
     }
   }
   targetCamX=player.rect.cx-W/3;targetCamX=max(0,targetCamX);camX=lerp(camX,targetCamX,CAM_LERP);
@@ -1894,13 +1949,14 @@ function drawIsoRoom(){
 }
 
 // ===== LEVEL SELECT — "IBCS TOWER" BUSINESS BUILDING MAP =====
-// A vertical cross-section of an office tower. Each of the 7 IBCS stages is a
-// floor (14 rooms = 14 rule-levels) + an 8th BONUS floor (the ISO 24896 vault).
-// The 3 Notation stages sit on the lowest floors and are bracketed "ISO 24896";
-// the 4 Composition stages rise above them. The building's architecture ages
-// upward — medieval ground floor -> hyper-futuristic top. Navigation copies the
-// Jump & Run world-map: an overview that eases-zooms onto the active floor while
-// a little office avatar walks from the cleared room to the next one.
+// A vertical cross-section of an office tower. Each of the 7 IBCS 2.0 stages is a
+// floor (14 rooms = 14 rule-levels) + an 8th floor: the IBCS 3.0 bonus stage (5
+// rooms). The 3 Notation stages sit on the lowest floors and are bracketed
+// "ISO 24896"; the CHECK floor also holds the ISO 24896 memory vault as an extra
+// room. The 4 Composition stages rise above them, IBCS 3.0 crowns the top. The
+// building's architecture ages upward — medieval ground floor -> hyper-futuristic
+// top. Navigation copies the Jump & Run world-map: an overview that eases-zooms
+// onto the active floor while a little office avatar walks between rooms.
 let menuCd=0;
 
 // ---- Building geometry (tower-space coords; camera maps these onto 900x600) ----
@@ -1910,12 +1966,15 @@ const T_INT_X=T_BLD_X+22, T_INT_W=T_BLD_W-44;      // interior (rooms live here)
 const TOWER_W=900, TOWER_H=T_TOPM+T_FLOORS*T_FLOOR_H+T_BASE; // 104+1056+120=1280
 function floorTopY(f){ return T_TOPM+(7-f)*T_FLOOR_H; }   // f0=ground (bottom), f7=top
 function floorCenterY(f){ return floorTopY(f)+T_FLOOR_H/2; }
-function floorRoomCount(f){ return f===7?1:14; }
-function floorFirstLevel(f){ return f*14+1; }             // f 0..6
+// Floor 7 (top) is the IBCS 3.0 bonus stage (5 rooms). Floor 2 (CHECK — the last
+// Notation floor) carries an extra room: the ISO 24896 memory vault (room index 14).
+const ISO_FLOOR=2, ISO_ROOM=14;
+function isIsoRoom(f,r){ return f===ISO_FLOOR && r===ISO_ROOM; }
+function floorRoomCount(f){ return f===7?5:(f===ISO_FLOOR?15:14); }
+function floorFirstLevel(f){ return f*14+1; }             // f 0..7 -> 1,15,...,99
 function floorArea(f){ return f===7?'Bonus':(f<3?'Notation':'Composition'); }
 function roomRect(f,r){
-  if(f===7){ const w=158,h=78; return {x:TOWER_W/2-w/2, y:floorTopY(f)+34, w, h}; }
-  const pad=12,gap=6,n=14,usable=T_INT_W-pad*2;
+  const pad=12,gap=6,n=floorRoomCount(f),usable=T_INT_W-pad*2;
   const rw=(usable-gap*(n-1))/n;
   return {x:T_INT_X+pad+r*(rw+gap), y:floorTopY(f)+46, w:rw, h:58};
 }
@@ -1951,17 +2010,20 @@ function highestUnlockedLevel(){
     hi=(i+1<SUBSTAGES.length?SUBSTAGES[i+1].firstLvl-1:RULE_COUNT);
   return hi;
 }
-function roomLevel(f,r){ return floorFirstLevel(f)+r; }       // f 0..6
+function roomLevel(f,r){ return floorFirstLevel(f)+r; }       // rule rooms only (not the ISO vault)
 function roomUnlocked(f,r){
-  if(f===7) return stats.levelReached>=RULE_COUNT;
+  if(isIsoRoom(f,r)) return stats.levelReached>=42; // unlocks after the 3 Notation stages (level 42)
   return isSubUnlocked(ibcsRule(roomLevel(f,r)).subGlobal);
 }
-function roomDone(f,r){ return f<7 && roomLevel(f,r)<=stats.levelReached; }
+function roomDone(f,r){
+  if(isIsoRoom(f,r)) return !!stats.isoMemorized;
+  return roomLevel(f,r)<=stats.levelReached;
+}
 
 function openLevelSelect(){
   buildTowerArt();
   const hi=highestUnlockedLevel();
-  selFloor=Math.min(6,Math.floor((hi-1)/14)); selRoom=(hi-1)%14;
+  selFloor=Math.min(7,Math.floor((hi-1)/14)); selRoom=Math.min((hi-1)%14, floorRoomCount(selFloor)-1);
   const rr=roomRect(selFloor,selRoom); avX=rr.x+rr.w/2; avY=rr.y+rr.h-3;
   towerMode='intro'; towerTimer=0; menuCd=8;
   tcamX=T_OVERVIEW.x; tcamY=T_OVERVIEW.y; tscale=T_OVERVIEW.s;
@@ -1970,9 +2032,9 @@ function openLevelSelect(){
 }
 function towerLock(msg){ cheatMsg=msg; cheatMsgTimer=120; menuCd=10; }
 function tryStartRoom(){
-  if(selFloor===7){
-    if(stats.levelReached>=RULE_COUNT){ keys.Enter=false;keys.NumpadEnter=false; enterIsoRoom(); }
-    else towerLock('Clear all '+RULE_COUNT+' rules to unlock the ISO 24896 vault');
+  if(isIsoRoom(selFloor,selRoom)){
+    if(roomUnlocked(selFloor,selRoom)){ keys.Enter=false;keys.NumpadEnter=false; enterIsoRoom(); }
+    else towerLock('Clear the 3 Notation stages to unlock the ISO 24896 vault');
     return;
   }
   const lvl=roomLevel(selFloor,selRoom);
@@ -2038,24 +2100,16 @@ function buildTowerArt(){
     g.fillStyle='rgba(255,255,255,0.10)'; g.fillRect(T_BLD_X,ty+5,T_BLD_W,2);
     eraMotif(g,f,era,ty);
     // header label
-    const st=f<7?STAGES[f]:null;
+    const st=STAGES[f];
     g.textAlign='left';
-    if(st){
-      g.font='bold 17px "Segoe UI",sans-serif'; g.fillStyle=st.color;
-      g.fillText((f+1)+' · '+st.pillar, T_INT_X+12, ty+22);
-      g.font='12px "Segoe UI",sans-serif'; g.fillStyle='rgba(255,255,255,0.55)';
-      g.fillText(st.world+'   ·   '+era.name, T_INT_X+12, ty+39);
-    } else {
-      g.font='bold 18px "Segoe UI",sans-serif'; g.fillStyle='#ffd24a';
-      g.fillText('★  ISO 24896 VAULT', T_INT_X+12, ty+24);
-      g.font='12px "Segoe UI",sans-serif'; g.fillStyle='rgba(255,255,255,0.6)';
-      g.fillText('Bonus floor · '+era.name, T_INT_X+12, ty+42);
-    }
-    // room frames (static; glass filled live)
-    if(f<7){ for(let r=0;r<14;r++){ const q=roomRect(f,r);
-      g.fillStyle=era.frame; RR(q.x-2,q.y-2,q.w+4,q.h+4,3); g.fill();
-    }}else{ const q=roomRect(7,0);
-      g.fillStyle='#5a4a14'; RR(q.x-6,q.y-6,q.w+12,q.h+12,8); g.fill();
+    g.font='bold 17px "Segoe UI",sans-serif'; g.fillStyle=st.color;
+    g.fillText((f+1)+' · '+st.pillar, T_INT_X+12, ty+22);
+    g.font='12px "Segoe UI",sans-serif'; g.fillStyle='rgba(255,255,255,0.55)';
+    g.fillText(st.world+'   ·   '+era.name, T_INT_X+12, ty+39);
+    // room frames (static; glass filled live) — the ISO vault gets a gold frame
+    for(let r=0;r<floorRoomCount(f);r++){ const q=roomRect(f,r);
+      if(isIsoRoom(f,r)){ g.fillStyle='#5a4a14'; RR(q.x-4,q.y-4,q.w+8,q.h+8,7); g.fill(); }
+      else { g.fillStyle=era.frame; RR(q.x-2,q.y-2,q.w+4,q.h+4,3); g.fill(); }
     }
   }
 
@@ -2159,15 +2213,21 @@ function drawTowerDynamic(){
       const q=roomRect(f,r), unlocked=roomUnlocked(f,r), done=roomDone(f,r), sel=(f===selFloor&&r===selRoom);
       let fill=era.glass;
       if(done) fill=era.lit; else if(unlocked) fill=era.dim;
+      if(isIsoRoom(f,r)) fill=done?'#ffd24a':(unlocked?'#8a6f1e':'#3a3015');
       ctx.fillStyle=fill; ctx.beginPath(); ctx.roundRect(q.x,q.y,q.w,q.h,3); ctx.fill();
       if(done){ ctx.save(); ctx.globalAlpha=0.85; ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.4;
         ctx.beginPath(); ctx.moveTo(q.x+q.w*0.28,q.y+q.h*0.55); ctx.lineTo(q.x+q.w*0.45,q.y+q.h*0.72); ctx.lineTo(q.x+q.w*0.74,q.y+q.h*0.34); ctx.stroke(); ctx.restore(); }
       else if(!unlocked){ ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.roundRect(q.x,q.y,q.w,q.h,3); ctx.fill();
         ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(q.x+q.w/2-4,q.y+q.h/2-1,8,7);
         ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(q.x+q.w/2,q.y+q.h/2-1,3,Math.PI,0); ctx.stroke(); }
-      if(f<7 && tscale>0.85){ ctx.fillStyle=done?'rgba(20,20,20,0.8)':(unlocked?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.35)');
+      if(!isIsoRoom(f,r) && tscale>0.85){ ctx.fillStyle=done?'rgba(20,20,20,0.8)':(unlocked?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.35)');
         ctx.font='bold 11px "Segoe UI",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
         ctx.fillText(roomLevel(f,r), q.x+q.w/2, q.y+12); }
+      if(isIsoRoom(f,r) && tscale>0.7){ ctx.fillStyle=unlocked?'#fff3c8':'rgba(255,255,255,0.4)';
+        ctx.font='bold 18px "Segoe UI",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('\u2605', q.x+q.w/2, q.y+q.h/2-4);
+        ctx.font='bold 9px "Segoe UI",sans-serif'; ctx.fillStyle=unlocked?'rgba(60,40,0,0.9)':'rgba(255,255,255,0.35)';
+        ctx.fillText('24896', q.x+q.w/2, q.y+q.h-9); }
       if(sel){ ctx.save(); ctx.strokeStyle='#ffffff'; ctx.lineWidth=2.5; ctx.globalAlpha=0.6+0.4*pulse;
         ctx.beginPath(); ctx.roundRect(q.x-3,q.y-3,q.w+6,q.h+6,5); ctx.stroke(); ctx.restore(); }
     }
@@ -2209,17 +2269,19 @@ function drawLevelSelect(){
   const area=floorArea(selFloor), ac=T_AREA_COL[area];
   fRRect(W-214,12,196,24,6,'rgba(255,255,255,0.08)');
   fCir(W-198,24,5,ac);
-  dText(area==='Bonus'?'BONUS · ISO 24896':(area==='Notation'?'NOTATION · ISO 24896':'COMPOSITION'),12,W-186,24,ac,false,false,true);
+  dText(area==='Bonus'?'BONUS · IBCS 3.0':(area==='Notation'?'NOTATION · ISO 24896':'COMPOSITION'),12,W-186,24,ac,false,false,true);
 
   // ----- Bottom info panel for the selected room -----
   const py=H-78;
   fRRect(14,py,W-28,66,10,'rgba(6,14,26,0.92)');
-  if(selFloor===7){
+  if(isIsoRoom(selFloor,selRoom)){
+    const unlocked=roomUnlocked(selFloor,selRoom);
     dText('★ ISO 24896 VAULT',18,32,py+22,'#ffd24a',false,false,true);
-    dText(stats.levelReached>=RULE_COUNT?'Unlocked — the final certification challenge awaits.':'Locked — clear all 98 rules to enter.',13,32,py+44,'rgba(255,255,255,0.7)',false,false,false);
+    dText(unlocked?(stats.isoMemorized?'✓ Standard memorized — replay the vault anytime':'Unlocked — memorize ISO 24896 to open the vault'):'Locked — clear the 3 Notation stages first',13,32,py+44,'rgba(255,255,255,0.7)',false,false,false);
   } else {
     const lvl=roomLevel(selFloor,selRoom), r=ibcsRule(lvl), st=STAGES[selFloor], unlocked=roomUnlocked(selFloor,selRoom);
-    dText('Floor '+(selFloor+1)+' · '+st.pillar+'  —  Room '+(selRoom+1)+'/14  (Level '+lvl+')',13,32,py+18,st.color,false,false,true);
+    const rc=floorRoomCount(selFloor)-(selFloor===ISO_FLOOR?1:0);
+    dText('Floor '+(selFloor+1)+' · '+st.pillar+'  —  Room '+(selRoom+1)+'/'+rc+'  (Level '+lvl+')',13,32,py+18,st.color,false,false,true);
     dText(r.code+' · '+r.title,16,32,py+40,unlocked?'#ffffff':'rgba(255,255,255,0.45)',false,false,true);
     dText(unlocked?(roomDone(selFloor,selRoom)?'✓ Cleared — replay anytime':'Available'):'🔒 Locked',12,32,py+58,unlocked?'#5be08c':'#ff9a6a',false,false,false);
   }
@@ -2316,7 +2378,7 @@ function drawLevelComplete(tick){
   }else{
     const nextRule=currentLevel<RULE_COUNT?ibcsRule(currentLevel+1):null;
     if(nextRule)dText('Next: '+nextRule.code+' — '+nextRule.title,12,W/2,H-92,'rgba(255,255,255,0.55)',true,false,true);
-    else dText('Final rule cleared — face the ISO 24896 vault!',13,W/2,H-92,'#ffd700',true,false,true);
+    else dText('Final rule cleared — you\u2019ve mastered IBCS 3.0!',13,W/2,H-92,'#ffd700',true,false,true);
   }
   if(completeTimer>30)dText('Press any key to continue...',14,W/2,H-50,'rgba(255,255,255,0.5)',true,false,true);
 }

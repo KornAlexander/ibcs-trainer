@@ -63,6 +63,9 @@
       ctx.strokeStyle = c; ctx.lineWidth = lw || 1;
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
     }
+    function fCir(cx, cy, r, c) {
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    }
     function dText(t, size, x, y, c, center, bold) {
       ctx.fillStyle = c;
       ctx.font = (bold ? 'bold ' : '') + size + "px 'Segoe UI',system-ui,sans-serif";
@@ -102,6 +105,7 @@
       if (img && drawImageFit(img, x, y, w, h)) return;
       const cx = x + w / 2, cy = y + h / 2;
       const vals = [0.5, 0.82, 0.42, 1.0, 0.66];
+      const GREY='#4a5160',DK='#23272e',LT='#b8bec8',RED='#e23b3b',BLU='#3b6fe2',GRN='#37a76a',AMB='#e2a93b',PUR='#8e5bd0',AX='#9aa3b0',GD='#c0c8d0';
       switch (kind) {
         case 'pie': {
           const r = Math.min(w, h) / 2;
@@ -239,6 +243,165 @@
             vBars(ox2, oy2, cw, chh, sets[q], (bx, by, bw, bh) => fRect(bx, by, bw, bh, '#4a5160')); }
           return;
         }
+
+        // ======= EXTENDED PER-RULE ICONS (one bold, legible glyph per rule) =======
+        // -- SIMPLIFY --
+        case 'bgFancy': { const g=ctx.createLinearGradient(x,y,x+w,y+h); g.addColorStop(0,'#ffe7a8'); g.addColorStop(1,'#a9ccff'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h); ctx.strokeStyle=PUR; ctx.lineWidth=1.5; ctx.strokeRect(x+0.8,y+0.8,w-1.6,h-1.6); vBars(x+1,y,w-2,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,DK)); return; }
+        case 'motion': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y,w*0.5,h,[0.5,0.82,0.6],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=AMB; ctx.lineWidth=1.6; for(let i=0;i<3;i++){const yy=y+h*(0.3+i*0.22); ctx.beginPath(); ctx.moveTo(x+w*0.52,yy); ctx.lineTo(x+w*0.85,yy); ctx.stroke(); fPoly([[x+w*0.85,yy-3],[x+w,yy],[x+w*0.85,yy+3]],AMB);} return; }
+        case 'bars3d': { dLine(x,y+h,x+w,y+h,AX,1); const d=Math.max(2,w*0.07); vBars(x,y+d,w-d,h-d,vals,(bx,by,bw,bh)=>{ fPoly([[bx+bw,by],[bx+bw+d,by-d],[bx+bw+d,by+bh-d],[bx+bw,by+bh]],'#2b3038'); fPoly([[bx,by],[bx+d,by-d],[bx+bw+d,by-d],[bx+bw,by]],'#626c7b'); fRect(bx,by,bw,bh,GREY); }); return; }
+        case 'fontFancy': { dText('Aa',Math.min(h,16),cx,cy-h*0.04,PUR,true,true); ctx.strokeStyle=RED; ctx.lineWidth=1.3; ctx.beginPath(); for(let i=0;i<=w-2;i+=2){const xx=x+1+i,yy=y+h*0.86+Math.sin(i*0.8)*1.8; i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);} ctx.stroke(); return; }
+        case 'fontPlain': { dText('Aa',Math.min(h,16),cx,cy,'#3a3f4a',true,true); return; }
+        case 'gridlines': { fRect(x,y,w,h,'#fff'); for(let i=1;i<5;i++){dLine(x,y+h*i/5,x+w,y+h*i/5,'#aeb7c2',0.8); dLine(x+w*i/5,y,x+w*i/5,y+h,'#aeb7c2',0.8);} vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h); return; }
+        case 'dataLabels': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y+4,w,h-4,vals,(bx,by,bw,bh)=>{fRect(bx,by,bw,bh,GREY); fRect(bx,by-3.4,bw,2.3,DK);}); return; }
+        case 'tableGrid': { fRect(x,y,w,h,'#fff'); for(let c=1;c<3;c++)dLine(x+w*c/3,y,x+w*c/3,y+h,AX,1); for(let r=0;r<4;r++){const ry=y+h*(r+0.5)/4; for(let c=0;c<3;c++)fRect(x+w*c/3+2+(r%2)*3,ry-1.3,w/3*0.5,2.6,'#5b6573');} ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h); return; }
+        case 'tableClean': { fRect(x,y,w,h,'#fff'); for(let r=0;r<4;r++){const ry=y+h*(r+0.5)/4; for(let c=0;c<3;c++){const rr=x+w*(c+1)/3-2; fRect(rr-w/3*0.5,ry-1.3,w/3*0.5,2.6,'#5b6573');}} dLine(x,y+h-0.5,x+w,y+h-0.5,GD,1); return; }
+        case 'textLong': { const ws=[0.95,0.88,0.97,0.72,0.9]; for(let i=0;i<5;i++)fRect(x,y+1+i*(h/5),w*ws[i],Math.max(1.5,h/5-2),'#5b6573'); return; }
+        case 'textShort': { fRect(x,y+h*0.42,w*0.55,Math.max(2,h*0.2),'#3a3f4a'); return; }
+        case 'textObvious': { fRect(x,y+h*0.16,w*0.95,Math.max(1.6,h*0.15),'#5b6573'); fRect(x,y+h*0.46,w*0.55,Math.max(1.6,h*0.15),'#b8bec8'); dLine(x,y+h*0.535,x+w*0.55,y+h*0.535,RED,1.5); fRect(x,y+h*0.74,w*0.85,Math.max(1.6,h*0.15),'#5b6573'); return; }
+        case 'textDup': { for(let i=0;i<3;i++)fRect(x,y+h*(0.16+i*0.3),w*0.8,Math.max(2,h*0.15),'#5b6573'); return; }
+        case 'textOnce': { fRect(x,y+h*0.42,w*0.8,Math.max(2,h*0.18),'#3a3f4a'); return; }
+        case 'labelAll': { const r=Math.min(w,h)/2*0.74; pieSlices(cx,cy,r,[GREY,'#6b7280','#868d9b','#a8aeb8','#5b6573'],[3,2,2,1,0.6]); for(let k=0;k<5;k++){const a=-Math.PI/2+k*2*Math.PI/5; fRect(cx+Math.cos(a)*r*1.15-3,cy+Math.sin(a)*r*1.15-1.1,6,2.3,DK);} return; }
+        case 'labelKey': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y+4,w,h-4,vals,(bx,by,bw,bh,i)=>{fRect(bx,by,bw,bh,i===3?GRN:GREY); if(i===3)fRect(bx-1,by-3.4,bw+2,2.5,DK);}); return; }
+        case 'roundNumber': { dText('1.2M',Math.min(h*0.8,13),cx,cy,GRN,true,true); return; }
+        case 'overLabel': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y+4,w,h-4,vals,(bx,by,bw,bh)=>{fRect(bx,by,bw,bh,GREY); fRect(bx,by-3.4,bw,2.3,RED);}); return; }
+
+        // -- UNIFY --
+        case 'mixTerms': { fRect(x,y+h*0.18,w*0.46,h*0.22,BLU); fRect(x+w*0.54,y+h*0.18,w*0.4,h*0.22,RED); fRect(x,y+h*0.58,w*0.34,h*0.22,GRN); fRect(x+w*0.42,y+h*0.58,w*0.52,h*0.22,AMB); return; }
+        case 'oneTerm': { for(let r=0;r<2;r++)for(let c=0;c<2;c++)fRect(x+c*w*0.5,y+h*0.22+r*h*0.34,w*0.42,h*0.2,'#5b6573'); return; }
+        case 'mixUnits': { dText('\u20ac $ %',Math.min(h*0.66,11),cx,cy,RED,true,true); return; }
+        case 'oneUnit': { dText('\u20ac \u20ac \u20ac',Math.min(h*0.66,11),cx,cy,'#3a3f4a',true,true); return; }
+        case 'msgVaried': { fRect(x,y+h*0.08,w*0.9,h*0.22,AMB); ctx.strokeStyle=RED; ctx.lineWidth=1.2; ctx.strokeRect(x,y+h*0.4,w*0.6,h*0.2); fRect(x,y+h*0.72,w*0.75,h*0.2,BLU); return; }
+        case 'msgUniform': { for(let i=0;i<3;i++)fRect(x,y+h*(0.1+i*0.32),w*0.85,h*0.2,AMB); return; }
+        case 'titleVaried': { fRect(x,y,w*0.6,h*0.16,'#3a3f4a'); fRect(x+w*0.3,y+h*0.26,w*0.45,h*0.1,'#868d9b'); dLine(x,y+h*0.5,x+w,y+h*0.5,GD,1); vBars(x,y+h*0.5,w,h*0.5,[0.6,0.85,0.5,0.7],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'titleUniform': { fRect(x,y,w*0.6,h*0.16,'#3a3f4a'); fRect(x,y+h*0.24,w*0.4,h*0.1,'#868d9b'); dLine(x,y+h*0.5,x+w,y+h*0.5,GD,1); vBars(x,y+h*0.5,w,h*0.5,[0.6,0.85,0.5,0.7],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'legendMoved': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y+2,w*0.7,h-2,[0.6,0.85,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); fRect(x+w*0.72,y,w*0.28,h*0.3,'#fff'); ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x+w*0.72,y,w*0.28,h*0.3); fPoly([[x+w*0.72,y+h*0.5],[x+w*0.6,y+h*0.62],[x+w*0.72,y+h*0.74]],RED); return; }
+        case 'legendFixed': { dLine(x,y+h*0.78,x+w,y+h*0.78,GD,1); vBars(x,y+2,w,h*0.74,[0.6,0.85,0.5,0.7],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); fCir(x+3,y+h*0.9,2,GREY); fRect(x+7,y+h*0.86,w*0.3,h*0.08,'#868d9b'); return; }
+        case 'mixedViz': { const r=Math.min(w,h)/2*0.4; pieSlices(x+w*0.18,cy,r,[RED,BLU,GRN],[2,1,1]); vBars(x+w*0.4,y+h*0.2,w*0.28,h*0.7,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=AMB; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(x+w*0.72,y+h*0.7); ctx.lineTo(x+w*0.82,y+h*0.3); ctx.lineTo(x+w*0.95,y+h*0.55); ctx.stroke(); return; }
+        case 'sameViz': { for(let q=0;q<3;q++){const ox2=x+q*w/3; vBars(ox2+1,y+h*0.2,w/3-3,h*0.7,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY));} dLine(x,y+h*0.9,x+w,y+h*0.9,GD,0.8); return; }
+        case 'mixedFills': { vBars(x,y,w,h,vals,(bx,by,bw,bh,i)=>{ if(i===0)fRect(bx,by,bw,bh,GREY); else if(i===1)fRect(bx,by,bw,bh,LT); else if(i===2){fRect(bx,by,bw,bh,'#eef1f5'); ctx.strokeStyle=GREY; ctx.lineWidth=1; ctx.strokeRect(bx,by,bw,bh); hatchRect(bx,by,bw,bh,GREY);} else {fRect(bx,by,bw,bh,'#fff'); ctx.strokeStyle=GREY; ctx.lineWidth=1.2; ctx.strokeRect(bx,by,bw,bh);} }); return; }
+        case 'scenarioStd': { dLine(x,y+h,x+w,y+h,AX,1); const m=['solid','light','outline','hatch']; vBars(x,y,w,h,[0.7,0.55,0.85,0.6],(bx,by,bw,bh,i)=>{ if(m[i]==='solid')fRect(bx,by,bw,bh,GREY); else if(m[i]==='light')fRect(bx,by,bw,bh,LT); else if(m[i]==='outline'){fRect(bx,by,bw,bh,'#fff'); ctx.strokeStyle=GREY; ctx.lineWidth=1.2; ctx.strokeRect(bx,by,bw,bh);} else {fRect(bx,by,bw,bh,'#eef1f5'); ctx.strokeStyle=GREY; ctx.lineWidth=1; ctx.strokeRect(bx,by,bw,bh); hatchRect(bx,by,bw,bh,GREY);} }); return; }
+        case 'timeVert': { dLine(x,y,x,y+h,AX,1); const hv=[0.5,0.75,0.6,0.9]; const bh=(h-2)/hv.length-2; for(let i=0;i<hv.length;i++)fRect(x,y+i*(bh+2),Math.max(2,w*hv[i]),Math.max(2,bh),GREY); ctx.strokeStyle=RED; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x+w*0.9,y+2); ctx.lineTo(x+w*0.9,y+h-2); ctx.stroke(); fPoly([[x+w*0.9-2.5,y+h-2],[x+w*0.9+2.5,y+h-2],[x+w*0.9,y+h+1]],RED); return; }
+        case 'structHoriz': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.8,0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=PUR; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x,y+h+2); ctx.lineTo(x,y+h+4); ctx.lineTo(x+w,y+h+4); ctx.lineTo(x+w,y+h+2); ctx.stroke(); return; }
+        case 'varAdhoc': { dText('1.2M',Math.min(h*0.7,12),cx,cy-h*0.05,'#3a3f4a',true,true); ctx.strokeStyle=RED; ctx.lineWidth=1.3; for(let i=0;i<3;i++){const xx=x+w*(0.2+i*0.3); ctx.beginPath(); ctx.moveTo(xx,y+h*0.78); ctx.lineTo(xx+3,y+h*0.7); ctx.lineTo(xx+6,y+h*0.82); ctx.stroke();} return; }
+        case 'tsStd': { dLine(x,y+h,x+w,y+h,AX,1); const pts=[[x,y+h*0.7],[x+w*0.3,y+h*0.45],[x+w*0.6,y+h*0.55],[x+w,y+h*0.25]]; ctx.strokeStyle=BLU; ctx.lineWidth=2; ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); pts.forEach(p=>fCir(p[0],p[1],1.8,DK)); return; }
+        case 'tsAdhoc': { dLine(x,y+h,x+w,y+h,AX,1); const pts=[[x,y+h*0.7],[x+w*0.3,y+h*0.45],[x+w*0.6,y+h*0.55],[x+w,y+h*0.25]]; ctx.strokeStyle=BLU; ctx.lineWidth=2; ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); fRect(pts[1][0]-2,pts[1][1]-2,4,4,RED); fPoly([[pts[3][0],pts[3][1]-3],[pts[3][0]-3,pts[3][1]+2],[pts[3][0]+3,pts[3][1]+2]],AMB); return; }
+        case 'highlightRandom': { dLine(x,y+h,x+w,y+h,GD,1); const c=[RED,GRN,AMB,BLU,PUR]; vBars(x,y,w,h,vals,(bx,by,bw,bh,i)=>fRect(bx,by,bw,bh,c[i])); return; }
+        case 'highlightStd': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y,w,h,vals,(bx,by,bw,bh,i)=>fRect(bx,by,bw,bh,i===3?RED:LT)); return; }
+        case 'scaleHidden': { for(let q=0;q<2;q++){const ox2=x+q*(w/2); dLine(ox2,y+h,ox2+w/2-2,y+h,AX,0.8); const dd=q?[0.4,0.55,0.45]:[0.8,1.0,0.9]; vBars(ox2,y,w/2-2,h,dd,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY));} ctx.strokeStyle=RED; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+w/2-1,y); ctx.lineTo(x+w/2-1,y+h); ctx.stroke(); return; }
+        case 'scaleMark': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y+h*0.18,w,h*0.82,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=RED; ctx.lineWidth=1.4; ctx.beginPath(); const yy=y+h*0.18; for(let i=0;i<=w;i+=3){const xx=x+i; i?ctx.lineTo(xx,yy+((i/3)%2?2:-2)):ctx.moveTo(xx,yy);} ctx.stroke(); return; }
+        case 'outlierNone': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.4,0.5,0.45],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); fRect(x+w*0.72,y-3,w*0.18,h+3,GREY); return; }
+        case 'outlierMark': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y+5,w,h-5,[0.45,0.55,0.5,0.95],(bx,by,bw,bh,i)=>{fRect(bx,by,bw,bh,GREY); if(i===3)fPoly([[bx+bw/2-3,by],[bx+bw/2+3,by],[bx+bw/2,by-4]],RED);}); return; }
+
+        // -- CHECK --
+        case 'logAxis': { fRect(x,y,w,h,'#fff'); [0.5,0.78,0.92,1].forEach(t=>dLine(x,y+h*(1-t),x+w,y+h*(1-t),'#aeb7c2',0.8)); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h); return; }
+        case 'linAxis': { fRect(x,y,w,h,'#fff'); for(let i=1;i<5;i++)dLine(x,y+h*i/5,x+w,y+h*i/5,'#dfe5ec',0.8); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); return; }
+        case 'binsUneq': { dLine(x,y+h,x+w,y+h,AX,1); const ws=[0.12,0.28,0.18,0.42]; const hs=[0.5,0.85,0.6,0.4]; let xx=x; for(let i=0;i<4;i++){const bw=w*ws[i]; fRect(xx,y+h*(1-hs[i]),Math.max(2,bw-1),h*hs[i],GREY); xx+=bw;} return; }
+        case 'binsEq': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.5,0.85,0.95,0.6,0.4],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); return; }
+        case 'clipped': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.6,1,0.5],(bx,by,bw,bh,i)=>{ if(i===1){fRect(bx,y,bw,h,GREY); ctx.fillStyle='#fff'; ctx.beginPath(); for(let k=0;k<=bw;k+=2){const xx=bx+k; k?ctx.lineTo(xx,y+((k/2)%2?2.5:0)):ctx.moveTo(xx,y);} ctx.lineTo(bx+bw,y-3); ctx.lineTo(bx,y-3); ctx.closePath(); ctx.fill();} else fRect(bx,by,bw,bh,GREY);}); return; }
+        case 'extremeRaw': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.08,0.06,1,0.05,0.07],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'volume3d': { fCir(x+w*0.3,y+h*0.5,Math.min(w,h)*0.28,GREY); fCir(x+w*0.74,y+h*0.5,Math.min(w,h)*0.16,'#868d9b'); return; }
+        case 'linear1d': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.9,0.45],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); return; }
+        case 'mapColor': { fPoly([[x+w*0.2,y+h*0.15],[x+w*0.85,y+h*0.1],[x+w*0.95,y+h*0.6],[x+w*0.5,y+h*0.95],[x+w*0.1,y+h*0.7]],'#2b3038'); return; }
+        case 'mapSize': { ctx.strokeStyle=AX; ctx.lineWidth=1.2; ctx.beginPath(); const p=[[x+w*0.2,y+h*0.15],[x+w*0.85,y+h*0.1],[x+w*0.95,y+h*0.6],[x+w*0.5,y+h*0.95],[x+w*0.1,y+h*0.7]]; p.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])); ctx.closePath(); ctx.stroke(); fCir(x+w*0.5,y+h*0.5,Math.min(w,h)*0.2,'rgba(55,167,106,0.8)'); return; }
+        case 'diffScale': { for(let q=0;q<2;q++){const ox2=x+q*(w/2+1); dLine(ox2,y+h,ox2+w/2-2,y+h,AX,0.8); for(let t=1;t<(q?3:6);t++)dLine(ox2,y+h*(1-t/(q?3:6)),ox2+w/2-2,y+h*(1-t/(q?3:6)),GD,0.5); vBars(ox2,y,w/2-2,h,[0.6,0.9],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY));} return; }
+        case 'sameScale': { for(let q=0;q<2;q++){const ox2=x+q*(w/2+1); dLine(ox2,y+h,ox2+w/2-2,y+h,AX,0.8); for(let t=1;t<4;t++)dLine(ox2,y+h*(1-t/4),ox2+w/2-2,y+h*(1-t/4),GD,0.5); vBars(ox2,y,w/2-2,h,[0.6,0.9],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN));} return; }
+        case 'wideMargin': { ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h); dLine(x+w*0.35,y+h*0.7,x+w*0.65,y+h*0.7,GD,0.8); vBars(x+w*0.35,y+h*0.4,w*0.3,h*0.3,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'narrowMargin': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); return; }
+        case 'nominalOnly': { dLine(x,y+h,x+w,y+h,AX,1); fRect(cx-w*0.18,y+h*0.1,w*0.36,h*0.9,GREY); return; }
+        case 'realAdj': { dLine(x,y+h,x+w,y+h,AX,1); fRect(cx-w*0.18,y+h*0.1,w*0.36,h*0.9,LT); fRect(cx-w*0.18,y+h*0.45,w*0.36,h*0.55,GRN); return; }
+        case 'currHidden': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.7,0.85],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'currAdj': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.7,0.85],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); dText('\u20ac',Math.min(h*0.5,9),x+w*0.5,y+h*0.3,BLU,true,true); return; }
+
+        // -- CONDENSE --
+        case 'fontBig': { dText('A',Math.min(h,h),cx,cy,'#3a3f4a',true,true); return; }
+        case 'fontSmall': { dText('a',Math.min(h*0.45,8),x+w*0.16,y+h*0.3,'#3a3f4a',true,true); for(let i=0;i<3;i++)fRect(x,y+h*(0.55+i*0.16),w*0.9,1.6,'#868d9b'); return; }
+        case 'bloated': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.8,0.95],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'compact': { dLine(x,y+h,x+w,y+h,AX,1); const n=9,bw=w/n-1; for(let i=0;i<n;i++){const v=0.4+0.5*Math.abs(Math.sin(i)); fRect(x+i*(bw+1),y+h*(1-v),Math.max(1,bw),h*v,GREY);} return; }
+        case 'oneHuge': { dLine(x,y+h,x+w,y+h,AX,1); fRect(x+w*0.2,y+h*0.05,w*0.6,h*0.95,GREY); return; }
+        case 'pageMargin': { ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h); fRect(x+w*0.22,y+h*0.22,w*0.56,h*0.56,'#dfe5ec'); return; }
+        case 'pageFull': { fRect(x,y,w,h,'#dfe5ec'); ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h); return; }
+        case 'emptyGaps': { dLine(x,y+h,x+w,y+h,AX,1); [0.05,0.45,0.85].forEach((t,i)=>fRect(x+w*t,y+h*(1-vals[i]),w*0.1,h*vals[i],GREY)); return; }
+        case 'tightChart': { dLine(x,y+h,x+w,y+h,AX,1); const n=7,bw=w/n-0.5; for(let i=0;i<n;i++){const v=vals[i%vals.length]; fRect(x+i*(bw+0.5),y+h*(1-v),bw,h*v,GREY);} return; }
+        case 'dataSparse': { dLine(x,y+h,x+w,y+h,AX,1); fCir(x+w*0.25,y+h*0.5,2,GREY); fCir(x+w*0.7,y+h*0.35,2,GREY); return; }
+        case 'dataRich': { dLine(x,y+h,x+w,y+h,AX,1); ctx.strokeStyle=BLU; ctx.lineWidth=1.6; ctx.beginPath(); for(let i=0;i<=12;i++){const xx=x+w*i/12,yy=y+h*(0.5+0.4*Math.sin(i*0.9)); i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);} ctx.stroke(); return; }
+        case 'detailHidden': { dLine(x,y+h,x+w,y+h,AX,1); fRect(x+w*0.3,y+h*0.15,w*0.4,h*0.85,GREY); return; }
+        case 'detailShown': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.5,0.7,0.4,0.85,0.6,0.55],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'seriesSplit': { for(let q=0;q<2;q++){const oy2=y+q*(h/2); dLine(x,oy2+h/2-1,x+w,oy2+h/2-1,GD,0.8); vBars(x,oy2,w,h/2-1,[0.6,0.85,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,q?BLU:GREY));} return; }
+        case 'overlay': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,LT)); ctx.strokeStyle=BLU; ctx.lineWidth=2; ctx.beginPath(); vals.forEach((v,i)=>{const xx=x+(i+0.5)*(w/vals.length),yy=y+h*(1-v*0.8); i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);}); ctx.stroke(); return; }
+        case 'tierSplit': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'multiTier': { vBars(x,y,w,h*0.6,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); const cy2=y+h*0.82; dLine(x,cy2,x+w,cy2,GD,0.8); const dv=[0.4,-0.3,0.5,-0.2,0.35]; const bw=(w-2)/dv.length-2; dv.forEach((d,i)=>{const bx=x+i*(bw+2),bh=Math.abs(d)*h*0.18; fRect(bx,d>=0?cy2-bh:cy2,Math.max(2,bw),Math.max(1,bh),d>=0?GRN:RED);}); return; }
+        case 'benchNone': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); return; }
+        case 'benchmark': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); dLine(x,y+h*0.35,x+w,y+h*0.35,RED,1.4); return; }
+        case 'numTable': { fRect(x,y,w,h,'#fff'); for(let r=0;r<4;r++)for(let c=0;c<3;c++)fRect(x+w*(c+1)/3-2-w/3*0.45,y+h*(r+0.5)/4-1.2,w/3*0.45,2.4,'#5b6573'); return; }
+        case 'sparkTable': { fRect(x,y,w,h,'#fff'); for(let r=0;r<4;r++){const ry=y+h*(r+0.5)/4; fRect(x,ry-1.2,w*0.3,2.4,'#5b6573'); ctx.strokeStyle=BLU; ctx.lineWidth=1.2; ctx.beginPath(); for(let i=0;i<=4;i++){const xx=x+w*0.4+w*0.55*i/4,yy=ry+Math.sin(i+r)*2.2; i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);} ctx.stroke();} return; }
+        case 'noInline': { dLine(x,y+h,x+w*0.55,y+h,GD,1); vBars(x,y+h*0.2,w*0.5,h*0.8,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); for(let i=0;i<3;i++)fRect(x+w*0.62,y+h*(0.2+i*0.25),w*0.34,1.8,'#b8bec8'); return; }
+        case 'inlineNotes': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y+h*0.2,w*0.62,h*0.8,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); fCir(x+w*0.72,y+h*0.3,2.4,AMB); fRect(x+w*0.8,y+h*0.28,w*0.18,1.8,'#5b6573'); fRect(x+w*0.8,y+h*0.5,w*0.16,1.8,'#5b6573'); return; }
+        case 'scattered': { const ch=[[0.1,0.1],[0.55,0.35],[0.2,0.6],[0.65,0.7]]; ch.forEach((p,i)=>{ctx.save(); ctx.translate(x+w*p[0]+w*0.12,y+h*p[1]+h*0.1); ctx.rotate((i-1.5)*0.3); vBars(-w*0.12,-h*0.1,w*0.24,h*0.2,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.restore();}); return; }
+        case 'grouped': { for(let q=0;q<4;q++){const ox2=x+(q%2)*(w/2),oy2=y+Math.floor(q/2)*(h/2); dLine(ox2,oy2+h/2-2,ox2+w/2-2,oy2+h/2-2,GD,0.6); vBars(ox2,oy2,w/2-2,h/2-2,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY));} return; }
+
+        // -- EXPRESS --
+        case 'tableWrong': { fRect(x,y,w,h,'#fff'); for(let c=1;c<3;c++)dLine(x+w*c/3,y,x+w*c/3,y+h,AX,1); for(let r=1;r<4;r++)dLine(x,y+h*r/4,x+w,y+h*r/4,AX,1); ctx.strokeStyle=RED; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(x+2,y+2); ctx.lineTo(x+w-2,y+h-2); ctx.moveTo(x+w-2,y+2); ctx.lineTo(x+2,y+h-2); ctx.stroke(); return; }
+        case 'tableRight': { fRect(x,y,w,h,'#fff'); fRect(x,y,w,h*0.22,'#dfe5ec'); for(let r=1;r<4;r++)for(let c=0;c<3;c++)fRect(x+w*(c+1)/3-2-w/3*0.45,y+h*(r+0.45)/4-1.1,w/3*0.45,2.2,'#5b6573'); return; }
+        case 'iconQty': { for(let i=0;i<5;i++){const px=x+w*(i+0.5)/5; fCir(px,y+h*0.3,Math.min(w/10,h*0.14),GREY); fRect(px-w*0.04,y+h*0.42,w*0.08,h*0.4,GREY);} return; }
+        case 'numberQty': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.5,0.75,0.6,0.9],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); return; }
+        case 'textSlide': { for(let i=0;i<4;i++){fCir(x+2,y+h*(0.18+i*0.22),1.6,'#5b6573'); fRect(x+6,y+h*(0.18+i*0.22)-1.3,w*0.8,2.6,'#5b6573');} return; }
+        case 'dataSlide': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y+h*0.15,w,h*0.85,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); return; }
+        case 'singleScenario': { dLine(x,y+h,x+w,y+h,AX,1); fRect(cx-w*0.16,y+h*0.2,w*0.32,h*0.8,GREY); return; }
+        case 'treeStruct': { fRect(cx-w*0.14,y+1,w*0.28,h*0.22,GREY); const ny=y+h*0.65; [0.18,0.5,0.82].forEach(t=>{fRect(x+w*t-w*0.1,ny,w*0.2,h*0.32,'#868d9b'); dLine(cx,y+h*0.23,x+w*t,ny,AX,1);}); return; }
+        case 'clusterNone': { dLine(x,y+h,x+w,y+h,AX,1); dLine(x,y,x,y+h,AX,1); [[0.2,0.3],[0.5,0.6],[0.7,0.25],[0.35,0.75],[0.85,0.55],[0.6,0.4]].forEach(p=>fCir(x+w*p[0],y+h*p[1],1.8,GREY)); return; }
+        case 'cluster': { dLine(x,y+h,x+w,y+h,AX,1); dLine(x,y,x,y+h,AX,1); [[0.3,0.35,GRN],[0.7,0.65,BLU]].forEach(g=>{ for(let i=0;i<3;i++){const a=i*2.1; fCir(x+w*g[0]+Math.cos(a)*w*0.08,y+h*g[1]+Math.sin(a)*h*0.1,1.8,g[2]);} sCir(x+w*g[0],y+h*g[1],Math.min(w,h)*0.16,g[2],1);}); return; }
+        case 'corrNone': { for(let q=0;q<2;q++){const oy2=y+q*(h/2); const d=q?[0.5,0.9,0.4,0.7]:[0.7,0.4,0.9,0.5]; const bw=(w-2)/4-2; d.forEach((v,i)=>fRect(x+i*(bw+2),oy2+(h/2-2)*(1-v),Math.max(2,bw),(h/2-2)*v,q?BLU:GREY));} return; }
+        case 'correlation': { for(let q=0;q<2;q++){const oy2=y+q*(h/2); const d=[0.9,0.7,0.5,0.35]; const bw=(w-2)/4-2; d.forEach((v,i)=>fRect(x+i*(bw+2),oy2+(h/2-2)*(1-v),Math.max(2,bw),(h/2-2)*v,q?BLU:GREY));} return; }
+
+        // -- STRUCTURE --
+        case 'reordered': { const ord=[3,1,2]; for(let i=0;i<3;i++){fRect(x,y+h*(0.08+i*0.32),w*0.9,h*0.24,'#868d9b'); dText(String(ord[i]),Math.min(h*0.2,9),x+w*0.12,y+h*(0.08+i*0.32)+h*0.12,'#fff',true,true);} return; }
+        case 'ordered': { for(let i=0;i<3;i++){fRect(x,y+h*(0.08+i*0.32),w*0.9,h*0.24,GREY); dText(String(i+1),Math.min(h*0.2,9),x+w*0.12,y+h*(0.08+i*0.32)+h*0.12,'#fff',true,true);} return; }
+        case 'parallelBad': { const sh=['c','s','d']; for(let i=0;i<3;i++){const yy=y+h*(0.2+i*0.3); if(sh[i]==='c')fCir(x+3,yy,2,'#5b6573'); else if(sh[i]==='s')fRect(x+1,yy-2,4,4,'#5b6573'); else fRect(x+1,yy-1,5,2,'#5b6573'); fRect(x+9,yy-1.3,w*0.7,2.6,'#5b6573');} return; }
+        case 'parallelGood': { for(let i=0;i<3;i++){const yy=y+h*(0.2+i*0.3); fCir(x+3,yy,2,'#5b6573'); fRect(x+9,yy-1.3,w*0.7,2.6,'#5b6573');} return; }
+        case 'doubleCount': { dLine(x,y+h,x+w,y+h,AX,1); fRect(x+w*0.1,y+h*0.2,w*0.45,h*0.8,'rgba(74,81,96,0.7)'); fRect(x+w*0.4,y+h*0.3,w*0.45,h*0.7,'rgba(226,59,59,0.6)'); return; }
+        case 'waterfall': { dLine(x,y+h,x+w,y+h,AX,1); const steps=[[0.7,0],[0.5,0.2],[0.85,0.15],[0.4,0]]; const bw=(w-2)/4-2; steps.forEach((s,i)=>fRect(x+i*(bw+2),y+h*(1-s[0]-s[1]),Math.max(2,bw),h*s[0],i%2?GRN:GREY)); return; }
+        case 'overlapDim': { fCir(x+w*0.38,cy,Math.min(w,h)*0.3,'rgba(59,111,226,0.55)'); fCir(x+w*0.62,cy,Math.min(w,h)*0.3,'rgba(226,59,59,0.5)'); return; }
+        case 'disjointDim': { fCir(x+w*0.3,cy,Math.min(w,h)*0.24,'rgba(59,111,226,0.7)'); fCir(x+w*0.7,cy,Math.min(w,h)*0.24,'rgba(55,167,106,0.75)'); return; }
+        case 'gapArg': { for(let i=0;i<4;i++){if(i===2)continue; fRect(x+w*i/4,y+h*0.3,w/4-2,h*0.4,GREY);} ctx.strokeStyle=RED; ctx.lineWidth=1.2; ctx.strokeRect(x+w*2/4,y+h*0.3,w/4-2,h*0.4); return; }
+        case 'fullArg': { for(let i=0;i<4;i++)fRect(x+w*i/4,y+h*0.3,w/4-2,h*0.4,GRN); return; }
+        case 'gapStruct': { const bx=cx-w*0.16; fRect(bx,y+h*0.55,w*0.32,h*0.2,'#868d9b'); fRect(bx,y+h*0.78,w*0.32,h*0.22,GREY); ctx.strokeStyle=RED; ctx.lineWidth=1; ctx.setLineDash([2,2]); ctx.strokeRect(bx,y+h*0.1,w*0.32,h*0.4); ctx.setLineDash([]); return; }
+        case 'fullStruct': { const bx=cx-w*0.16,cols=[GRN,'#5fb98a','#9ad3b6']; let yy=y+h; [0.34,0.3,0.36].forEach((s,i)=>{const sh=h*s; yy-=sh; fRect(bx,yy,w*0.32,sh,cols[i]);}); ctx.strokeStyle=DK; ctx.lineWidth=1; ctx.strokeRect(bx,y,w*0.32,h); return; }
+        case 'buried': { fPoly([[cx,y+h],[x+w*0.15,y],[x+w*0.85,y]],LT); fRect(x+w*0.32,y+h*0.78,w*0.36,h*0.2,RED); return; }
+        case 'deduction': { for(let i=0;i<3;i++){fRect(x+w*0.1,y+h*(0.06+i*0.34),w*0.8,h*0.2,i===0?GRN:'#868d9b'); if(i<2)fPoly([[cx-3,y+h*(0.26+i*0.34)],[cx+3,y+h*(0.26+i*0.34)],[cx,y+h*(0.34+i*0.34)]],AX);} return; }
+        case 'scatterStmt': { [[0.2,0.3],[0.6,0.2],[0.8,0.6],[0.35,0.7],[0.55,0.5]].forEach(p=>fRect(x+w*p[0]-2,y+h*p[1]-2,4,4,'#868d9b')); return; }
+        case 'pyramidUp': { fPoly([[cx,y],[x+w*0.12,y+h],[x+w*0.88,y+h]],'#868d9b'); fPoly([[cx,y],[x+w*0.34,y+h*0.42],[x+w*0.66,y+h*0.42]],GRN); return; }
+        case 'flatList': { for(let i=0;i<4;i++)fRect(x,y+h*(0.1+i*0.24),w*0.85,h*0.14,'#868d9b'); return; }
+        case 'indentList': { const ind=[0,0.18,0.18,0.36]; for(let i=0;i<4;i++)fRect(x+w*ind[i],y+h*(0.1+i*0.24),w*0.85-w*ind[i],h*0.14,i===0?DK:'#868d9b'); return; }
+        case 'flatTable': { fRect(x,y,w,h,'#fff'); for(let r=0;r<4;r++)fRect(x,y+h*(r+0.5)/4-1.2,w*0.85,2.4,'#5b6573'); return; }
+        case 'boldSums': { fRect(x,y,w,h,'#fff'); for(let r=0;r<3;r++)fRect(x+w*0.1,y+h*(r+0.5)/4-1,w*0.75,2,'#868d9b'); fRect(x,y+h*3.5/4-1.6,w*0.9,3.2,DK); return; }
+        case 'looseNotes': { [[0.2,0.25],[0.7,0.2],[0.4,0.6],[0.8,0.7]].forEach(p=>fCir(x+w*p[0],y+h*p[1],2.4,AMB)); return; }
+        case 'numberedNotes': { for(let i=0;i<3;i++){const yy=y+h*(0.18+i*0.3); dText(String(i+1)+'.',Math.min(h*0.2,8),x+w*0.06,yy,'#3a3f4a',true,true); fRect(x+w*0.2,yy-1.3,w*0.72,2.6,'#5b6573');} return; }
+
+        // -- SAY --
+        case 'noGoal': { for(let i=0;i<4;i++){const a=i*1.7; ctx.strokeStyle='#868d9b'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(cx,cy); const ex=cx+Math.cos(a)*w*0.4,ey=cy+Math.sin(a)*h*0.4; ctx.lineTo(ex,ey); ctx.stroke(); fPoly([[ex,ey],[ex-Math.cos(a-0.4)*4,ey-Math.sin(a-0.4)*4],[ex-Math.cos(a+0.4)*4,ey-Math.sin(a+0.4)*4]],'#868d9b');} return; }
+        case 'target': { sCir(cx,cy,Math.min(w,h)*0.42,RED,1.6); sCir(cx,cy,Math.min(w,h)*0.26,RED,1.4); fCir(cx,cy,Math.min(w,h)*0.1,RED); return; }
+        case 'noAudience': { sCir(cx,cy-h*0.1,Math.min(w,h)*0.18,'#868d9b',1.4); fPoly([[cx-w*0.22,y+h],[cx+w*0.22,y+h],[cx+w*0.16,y+h*0.55],[cx-w*0.16,y+h*0.55]],'rgba(134,141,155,0.5)'); ctx.strokeStyle=RED; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(x+2,y+2); ctx.lineTo(x+w-2,y+h-2); ctx.stroke(); return; }
+        case 'audience': { for(let i=0;i<3;i++){const px=x+w*(i+0.5)/3; fCir(px,y+h*0.32,Math.min(w/8,h*0.16),GREY); fPoly([[px-w*0.1,y+h],[px+w*0.1,y+h],[px+w*0.07,y+h*0.5],[px-w*0.07,y+h*0.5]],GREY);} return; }
+        case 'noSetup': { ctx.strokeStyle='#868d9b'; ctx.lineWidth=1.4; ctx.setLineDash([3,3]); ctx.strokeRect(x+w*0.12,y+h*0.18,w*0.76,h*0.64); ctx.setLineDash([]); return; }
+        case 'situation': { dLine(x,cy,x+w,cy,GREY,2); fCir(x+w*0.2,cy,2.4,GREY); fRect(x+w*0.4,cy-h*0.2,w*0.5,2,'#868d9b'); return; }
+        case 'hideProblem': { ctx.strokeStyle=GRN; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<=w;i+=2){const xx=x+i,yy=cy-Math.sin(i*0.12)*2; i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);} ctx.stroke(); return; }
+        case 'problemGap': { ctx.strokeStyle=GREY; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,y+h*0.3); ctx.lineTo(x+w*0.45,y+h*0.35); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x+w*0.55,y+h*0.75); ctx.lineTo(x+w,y+h*0.8); ctx.stroke(); ctx.strokeStyle=RED; ctx.lineWidth=1.4; ctx.setLineDash([2,2]); ctx.beginPath(); ctx.moveTo(x+w*0.5,y+h*0.35); ctx.lineTo(x+w*0.5,y+h*0.75); ctx.stroke(); ctx.setLineDash([]); return; }
+        case 'noQuestion': { dLine(x,cy,x+w,cy,'#868d9b',1.4); return; }
+        case 'questionMark': { dText('?',Math.min(h,h),cx,cy,BLU,true,true); return; }
+        case 'observeOnly': { sCir(cx,cy,Math.min(w,h)*0.28,'#868d9b',1.6); fCir(cx,cy,Math.min(w,h)*0.1,'#868d9b'); dLine(cx+Math.min(w,h)*0.22,cy+Math.min(w,h)*0.22,x+w-1,y+h-1,'#868d9b',1.6); return; }
+        case 'recommend': { fCir(cx,cy-h*0.1,Math.min(w,h)*0.22,AMB); fRect(cx-w*0.08,cy+h*0.12,w*0.16,h*0.18,'#868d9b'); return; }
+        case 'claimOnly': { fPoly([[x+w*0.1,y+h*0.12],[x+w*0.9,y+h*0.12],[x+w*0.9,y+h*0.62],[x+w*0.38,y+h*0.62],[x+w*0.24,y+h*0.85],[x+w*0.24,y+h*0.62],[x+w*0.1,y+h*0.62]],'#e6ebf0'); fRect(x+w*0.22,y+h*0.3,w*0.5,2.4,'#b8bec8'); return; }
+        case 'evidence': { fPoly([[x+w*0.1,y+h*0.1],[x+w*0.9,y+h*0.1],[x+w*0.9,y+h*0.55],[x+w*0.38,y+h*0.55],[x+w*0.24,y+h*0.78],[x+w*0.24,y+h*0.55],[x+w*0.1,y+h*0.55]],'#e6ebf0'); vBars(x+w*0.2,y+h*0.18,w*0.55,h*0.3,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GRN)); return; }
+        case 'vague': { ctx.strokeStyle='#868d9b'; ctx.lineWidth=2; for(let r=0;r<3;r++){ctx.beginPath(); for(let i=0;i<=w;i+=2){const xx=x+i,yy=y+h*(0.3+r*0.22)+Math.sin(i*0.6)*1.6; i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);} ctx.stroke();} return; }
+        case 'precise': { dText('3.5',Math.min(h*0.8,14),cx,cy,GRN,true,true); return; }
+        case 'noEmphasis': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y,w,h,[0.7,0.7,0.7,0.7,0.7],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,LT)); return; }
+        case 'noSource': { dLine(x,y+h*0.8,x+w,y+h*0.8,GD,1); vBars(x,y,w,h*0.78,[0.6,0.9,0.5,0.7],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=RED; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(x,y+h*0.88); ctx.lineTo(x+w*0.4,y+h*0.96); ctx.stroke(); return; }
+        case 'source': { dLine(x,y+h*0.78,x+w,y+h*0.78,GD,1); vBars(x,y,w,h*0.76,[0.6,0.9,0.5,0.7],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); fRect(x,y+h*0.9,w*0.6,2,'#868d9b'); return; }
+        case 'linkedNotes': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y+h*0.15,w*0.7,h*0.85,[0.6,0.9,0.5],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); [1,2].forEach((n,i)=>{const px=x+w*(0.2+i*0.35),py=y+h*0.3; fCir(px,py,3,BLU); dText(String(n),6,px,py,'#fff',true,true); dLine(px,py+3,px,y+h,BLU,0.8);}); return; }
+        case 'noRecap': { ctx.strokeStyle=GREY; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,y+h*0.7); ctx.lineTo(x+w*0.7,y+h*0.3); ctx.stroke(); fCir(x+w*0.7,y+h*0.3,1.6,GREY); return; }
+        case 'recap': { fRect(x+w*0.1,y+h*0.15,w*0.8,h*0.25,AMB); fRect(x+w*0.1,y+h*0.6,w*0.8,h*0.25,AMB); ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.setLineDash([2,2]); dLine(x+w*0.5,y+h*0.4,x+w*0.5,y+h*0.6,AX,1); ctx.setLineDash([]); return; }
+        case 'noNext': { fRect(x+w*0.3,y+h*0.3,w*0.4,h*0.4,'#868d9b'); ctx.strokeStyle=RED; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(x+w*0.3,y+h*0.3); ctx.lineTo(x+w*0.7,y+h*0.7); ctx.stroke(); return; }
+        case 'nextSteps': { ctx.strokeStyle=GRN; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,cy); ctx.lineTo(x+w*0.45,cy); ctx.stroke(); fPoly([[x+w*0.45,cy-4],[x+w*0.6,cy],[x+w*0.45,cy+4]],GRN); for(let i=0;i<2;i++){const ry=y+h*(0.3+i*0.4); ctx.strokeStyle=GREY; ctx.lineWidth=1.2; ctx.strokeRect(x+w*0.65,ry-2.5,5,5); dLine(x+w*0.65,ry,x+w*0.65+2.5,ry+2.5,GRN,1.2); dLine(x+w*0.65+2.5,ry+2.5,x+w*0.65+5,ry-2.5,GRN,1.2); fRect(x+w*0.78,ry-1.3,w*0.18,2.6,GREY);} return; }
       }
       // column-based kinds: column / colorful / mono / generic
       let palette;

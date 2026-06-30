@@ -15,6 +15,7 @@ canvas{border-radius:8px;box-shadow:0 0 60px rgba(80,160,255,0.25);max-width:100
 </div>
 <pre id="gameStats" style="display:none;position:absolute;bottom:4px;left:4px;font-size:10px;color:#888;max-width:90vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none"></pre>
 <script src="ibcs_rules.js"></script>
+<script src="ibcs_charts.js"></script>
 <script src="ibcs_mobile.js"></script>
 <script>
 (() => {
@@ -242,7 +243,13 @@ function drawChartImageFit(img,x,y,w,h){
   ctx.imageSmoothingEnabled=false;
   return true;
 }
+let _glyphRenderer=null;
 function drawChartGlyph(kind,x,y,w,h){
+  // Delegate to the shared IBCSCharts renderer (ibcs_charts.js) — the single
+  // source of truth for every procedural rule icon, so the platformer, swipe and
+  // escape room all draw the exact same bold vector glyph set. The local switch
+  // below is kept only as a fallback if ibcs_charts.js fails to load.
+  if(typeof IBCSCharts==='function'){ if(!_glyphRenderer)_glyphRenderer=IBCSCharts(ctx); _glyphRenderer.glyph(kind,x,y,w,h); return; }
   const cx=x+w/2, cy=y+h/2;
   const vals=[0.5,0.82,0.42,1.0,0.66];
   switch(kind){

@@ -204,6 +204,70 @@ const STAGES = [
   ]},
 ];
 
+// ----- Per-rule art overrides: give every one of the 98 rules its own
+// distinct, easily-recognizable do/dont icon (e = enemy/"don't", g = collectible
+// /"do"). Without this, every rule in a stage would inherit the stage default
+// art, so a whole stage of levels looked identical. Glyph kinds are rendered by
+// ibcs_charts.js. Within every stage all 14 enemy glyphs are unique. -----
+const ARTMAP = {
+  // SIMPLIFY
+  'SI 1.1':{e:'clutter',g:'clean'},      'SI 1.2':{e:'bgFancy',g:'clean'},
+  'SI 1.3':{e:'motion',g:'clean'},       'SI 2.1':{e:'bars3d',g:'column'},
+  'SI 2.2':{e:'colorful',g:'mono'},      'SI 2.3':{e:'fontFancy',g:'fontPlain'},
+  'SI 3.1':{e:'gridlines',g:'dataLabels'},'SI 3.2':{e:'tableGrid',g:'tableClean'},
+  'SI 4.1':{e:'textLong',g:'textShort'}, 'SI 4.2':{e:'textObvious',g:'textShort'},
+  'SI 4.3':{e:'textDup',g:'textOnce'},   'SI 5.1':{e:'labelAll',g:'labelKey'},
+  'SI 5.2':{e:'bigNumber',g:'roundNumber'},'SI 5.3':{e:'overLabel',g:'clean'},
+  // UNIFY
+  'UN 1.1':{e:'mixTerms',g:'oneTerm'},   'UN 1.2':{e:'mixUnits',g:'oneUnit'},
+  'UN 2.1':{e:'msgVaried',g:'msgUniform'},'UN 2.2':{e:'titleVaried',g:'titleUniform'},
+  'UN 2.3':{e:'legendMoved',g:'legendFixed'},'UN 3.1':{e:'mixedViz',g:'sameViz'},
+  'UN 3.2':{e:'mixedFills',g:'scenarioStd'},'UN 3.3':{e:'timeVert',g:'column'},
+  'UN 3.4':{e:'structHoriz',g:'bar'},    'UN 4.1':{e:'varAdhoc',g:'deviation'},
+  'UN 4.2':{e:'tsAdhoc',g:'tsStd'},      'UN 5.1':{e:'highlightRandom',g:'highlightStd'},
+  'UN 5.2':{e:'scaleHidden',g:'scaleMark'},'UN 5.3':{e:'outlierNone',g:'outlierMark'},
+  // CHECK
+  'CH 1.1':{e:'axisBreak',g:'axisFull'}, 'CH 1.2':{e:'logAxis',g:'linAxis'},
+  'CH 1.3':{e:'binsUneq',g:'binsEq'},    'CH 2.1':{e:'clipped',g:'column'},
+  'CH 2.2':{e:'extremeRaw',g:'outlierMark'},'CH 3.1':{e:'pie',g:'column'},
+  'CH 3.2':{e:'volume3d',g:'linear1d'},  'CH 3.3':{e:'mapColor',g:'mapSize'},
+  'CH 4.1':{e:'diffScale',g:'sameScale'},'CH 4.2':{e:'wideMargin',g:'narrowMargin'},
+  'CH 4.3':{e:'scaleHidden',g:'scaleMark'},'CH 4.4':{e:'outlierNone',g:'outlierMark'},
+  'CH 5.1':{e:'nominalOnly',g:'realAdj'},'CH 5.2':{e:'currHidden',g:'currAdj'},
+  // CONDENSE
+  'CO 1.1':{e:'fontBig',g:'fontSmall'},  'CO 1.2':{e:'bloated',g:'compact'},
+  'CO 1.3':{e:'oneHuge',g:'smallMultiples'},'CO 2.1':{e:'pageMargin',g:'pageFull'},
+  'CO 2.2':{e:'emptyGaps',g:'tightChart'},'CO 3.1':{e:'dataSparse',g:'dataRich'},
+  'CO 3.2':{e:'detailHidden',g:'detailShown'},'CO 4.1':{e:'seriesSplit',g:'overlay'},
+  'CO 4.2':{e:'tierSplit',g:'multiTier'},'CO 4.3':{e:'benchNone',g:'benchmark'},
+  'CO 4.4':{e:'numTable',g:'sparkTable'},'CO 4.5':{e:'noInline',g:'inlineNotes'},
+  'CO 5.1':{e:'spaghetti',g:'smallMultiples'},'CO 5.2':{e:'scattered',g:'grouped'},
+  // EXPRESS
+  'EX 1.1':{e:'funnel',g:'column'},      'EX 1.2':{e:'tableWrong',g:'tableRight'},
+  'EX 2.1':{e:'ring',g:'column'},        'EX 2.2':{e:'gauge',g:'column'},
+  'EX 2.3':{e:'radar',g:'column'},       'EX 2.4':{e:'spaghetti',g:'smallMultiples'},
+  'EX 2.5':{e:'traffic',g:'deviation'},  'EX 3.1':{e:'iconQty',g:'numberQty'},
+  'EX 3.2':{e:'textSlide',g:'dataSlide'},'EX 4.1':{e:'singleScenario',g:'scenarioStd'},
+  'EX 4.2':{e:'bigNumber',g:'deviation'},'EX 5.1':{e:'oneHuge',g:'treeStruct'},
+  'EX 5.2':{e:'clusterNone',g:'cluster'},'EX 5.3':{e:'corrNone',g:'correlation'},
+  // STRUCTURE
+  'ST 1.1':{e:'reordered',g:'ordered'},  'ST 1.2':{e:'parallelBad',g:'parallelGood'},
+  'ST 1.3':{e:'mixTerms',g:'oneTerm'},   'ST 1.4':{e:'mixedViz',g:'sameViz'},
+  'ST 2.1':{e:'meceBad',g:'meceGood'},   'ST 2.2':{e:'doubleCount',g:'waterfall'},
+  'ST 2.3':{e:'overlapDim',g:'disjointDim'},'ST 3.1':{e:'gapArg',g:'fullArg'},
+  'ST 3.2':{e:'gapStruct',g:'fullStruct'},'ST 4.1':{e:'buried',g:'deduction'},
+  'ST 4.2':{e:'scatterStmt',g:'pyramidUp'},'ST 5.1':{e:'flatList',g:'indentList'},
+  'ST 5.2':{e:'flatTable',g:'boldSums'}, 'ST 5.3':{e:'looseNotes',g:'numberedNotes'},
+  // SAY
+  'SA 1.1':{e:'noGoal',g:'target'},      'SA 1.2':{e:'noAudience',g:'audience'},
+  'SA 2.1':{e:'noSetup',g:'situation'},  'SA 2.2':{e:'hideProblem',g:'problemGap'},
+  'SA 2.3':{e:'noQuestion',g:'questionMark'},'SA 3.1':{e:'observeOnly',g:'recommend'},
+  'SA 3.2':{e:'buried',g:'pyramidUp'},   'SA 4.1':{e:'claimOnly',g:'evidence'},
+  'SA 4.2':{e:'vague',g:'precise'},      'SA 4.3':{e:'noEmphasis',g:'highlightStd'},
+  'SA 4.4':{e:'noSource',g:'source'},    'SA 4.5':{e:'looseNotes',g:'linkedNotes'},
+  'SA 5.1':{e:'noRecap',g:'recap'},      'SA 5.2':{e:'noNext',g:'nextSteps'},
+};
+
 // ----- Flatten the stage tree into a 1-based rule index (1..RULE_COUNT) -----
 // Each entry: {lvl, stageIdx, subIdx, code, title, do, dont, enemyKind, good,
 //              pillar, area, sub, world}.
@@ -215,7 +279,7 @@ STAGES.forEach((st, si) => {
     SUBSTAGES.push({stageIdx:si, subIdx:sj, code:sub.code, title:sub.title,
       pillar:st.pillar, world:st.world, color:st.color, firstLvl});
     sub.rules.forEach(r => {
-      const art = r[4] || st.art;
+      const art = ARTMAP[r[0]] || r[4] || st.art;
       RULES.push({
         lvl: RULES.length + 1, stageIdx: si, subIdx: sj, subGlobal: SUBSTAGES.length - 1,
         code: r[0], title: r[1], do: r[2], dont: r[3],

@@ -26,6 +26,21 @@ canvas{border-radius:8px;box-shadow:0 0 60px rgba(80,160,255,0.25);cursor:pointe
 const cv=document.getElementById('c'), ctx=cv.getContext('2d',{alpha:false});
 const W=900,H=600;
 if (window.IBCSMobile) window.IBCSMobile.makeResponsive(cv);
+// Crisp on every display: makeResponsive() sets the canvas CSS size to fit the
+// viewport; we then size the pixel buffer to THAT displayed size x devicePixelRatio
+// (recomputed on resize / zoom / monitor change), so the canvas is never up-scaled
+// and never blurry. All drawing stays in logical 900x600 coords; loop() applies
+// ctx.setTransform(cv.width/W,0,0,cv.height/H).
+function hidpi(){
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const cssW = parseFloat(cv.style.width) || cv.clientWidth || W;
+  const bw = Math.max(W, Math.round(cssW * dpr));
+  const bh = Math.round(bw * H / W);   // keep exact 3:2 so the transform stays uniform
+  if (cv.width !== bw || cv.height !== bh){ cv.width = bw; cv.height = bh; }
+}
+hidpi();
+addEventListener('resize', hidpi, { passive: true });
+addEventListener('orientationchange', () => setTimeout(hidpi, 260), { passive: true });
 const charts=IBCSCharts(ctx);
 const {RULES,STAGES}=window.IBCS;
 
@@ -272,6 +287,7 @@ function drawTitle(){
 // ---------- loop ----------
 let last=performance.now();
 function loop(now){
+  ctx.setTransform(cv.width/W, 0, 0, cv.height/H, 0, 0); // map logical 900x600 onto the hi-dpi backing buffer
   const dt=Math.min(0.05,(now-last)/1000); last=now; titleAnim+=dt;
   if(flash&&flashT>0){ flashT-=dt; }
   if(state==='title') drawTitle();

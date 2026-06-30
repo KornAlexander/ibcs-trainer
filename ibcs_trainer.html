@@ -26,6 +26,21 @@ cv.focus();
 // Scale to fit mobile/landscape viewports and show an on-screen gamepad on
 // touch devices (no-op on desktop / inside the Rayfin iframe at native size).
 if (window.IBCSMobile) window.IBCSMobile.makeResponsive(cv, { touchControls: true });
+// Crisp on every display: makeResponsive() sets the canvas CSS size to fit the
+// viewport; we then size the pixel buffer to THAT displayed size x devicePixelRatio
+// (recomputed on resize / zoom / monitor change), so the canvas is never up-scaled
+// and never blurry — on phones or big desktop monitors alike. All drawing stays in
+// logical 900x600 coords; loop() applies ctx.setTransform(cv.width/W,0,0,cv.height/H).
+function hidpi(){
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const cssW = parseFloat(cv.style.width) || cv.clientWidth || W;
+  const bw = Math.max(W, Math.round(cssW * dpr));
+  const bh = Math.round(bw * H / W);   // keep exact 3:2 so the transform stays uniform
+  if (cv.width !== bw || cv.height !== bh){ cv.width = bw; cv.height = bh; ctx.imageSmoothingEnabled = false; }
+}
+hidpi();
+addEventListener('resize', hidpi, { passive: true });
+addEventListener('orientationchange', () => setTimeout(hidpi, 260), { passive: true });
 
 // ===== AUDIO =====
 let audioCtx = null;
@@ -222,7 +237,9 @@ function drawChartImageFit(img,x,y,w,h){
   const iw=img.naturalWidth,ih=img.naturalHeight;
   if(!iw||!ih)return false;
   const s=Math.min(w/iw,h/ih),dw=iw*s,dh=ih*s;
+  ctx.imageSmoothingEnabled=true; // chart screenshots are photographic — smooth-scale them
   ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+  ctx.imageSmoothingEnabled=false;
   return true;
 }
 function drawChartGlyph(kind,x,y,w,h){
@@ -436,7 +453,7 @@ cv.addEventListener('click',()=>{cv.focus();initAudio();if(state!=='intro')anyKe
 cv.addEventListener('pointerdown',e=>{
   if(state!=='intro')return;
   const r=cv.getBoundingClientRect();
-  const mx=(e.clientX-r.left)*(cv.width/r.width), my=(e.clientY-r.top)*(cv.height/r.height);
+  const mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
   if(mx>=INTRO_BTN.x&&mx<=INTRO_BTN.x+INTRO_BTN.w&&my>=INTRO_BTN.y&&my<=INTRO_BTN.y+INTRO_BTN.h){initAudio();beginLevel();}
 });
 nameInput.addEventListener('keydown',e=>{
@@ -2022,6 +2039,7 @@ function drawGame(){
 // ===== MAIN LOOP =====
 let winSfxPlayed=false;
 function loop(){
+  ctx.setTransform(cv.width/W, 0, 0, cv.height/H, 0, 0); // map logical 900x600 onto the hi-dpi backing buffer
   if(state==='title'){
     titleAnim+=0.016;drawTitle(titleAnim*60);
     if(keys.KeyS){keys.KeyS=false;anyKey=false;openLevelSelect();}

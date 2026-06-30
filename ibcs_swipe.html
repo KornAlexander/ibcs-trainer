@@ -25,6 +25,11 @@ canvas{border-radius:8px;box-shadow:0 0 60px rgba(80,160,255,0.25);max-width:100
 "use strict";
 const cv = document.getElementById('c'), ctx = cv.getContext('2d', { alpha:false });
 const W = 900, H = 600;
+// Render the backing buffer ABOVE the displayed size so the CSS up-scaling done
+// by makeResponsive() never blurs the text / vector charts. All drawing stays in
+// logical 900x600 coords; loop() re-applies the matching transform each frame.
+const SS = Math.max(1.5, Math.min(2.5, (window.devicePixelRatio || 1) * 1.6));
+cv.width = Math.round(W * SS); cv.height = Math.round(H * SS);
 if (window.IBCSMobile) window.IBCSMobile.makeResponsive(cv);
 const charts = IBCSCharts(ctx);
 const {RULES} = window.IBCS;
@@ -48,6 +53,7 @@ let cardTimer=ROUND_TIME;
 let dragX=0, dragging=false, dragStart=0, autoFly=0; // autoFly: -1 left, +1 right
 let feedback=null, feedbackT=0, feedbackTotalT=0;
 let titleAnim=0;
+let naming=false;            // true while the name-entry overlay is open
 const keys={};
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -143,8 +149,8 @@ cv.addEventListener('touchstart',pointerDown,{passive:false}); cv.addEventListen
 
 // ---------- name entry ----------
 const nameBox=document.getElementById('nameContainer'), nameInput=document.getElementById('playerNameInput');
-cv.addEventListener('click',()=>{ if(state==='title'){ nameBox.style.display='block'; nameInput.focus(); } });
-nameInput.addEventListener('keydown',e=>{ if(e.code==='Enter'){ playerName=nameInput.value.trim()||'Player'; nameBox.style.display='none'; startGame(); } });
+cv.addEventListener('click',()=>{ if(state==='title'){ naming=true; nameBox.style.display='block'; nameInput.focus(); } });
+nameInput.addEventListener('keydown',e=>{ if(e.code==='Enter'){ playerName=nameInput.value.trim()||'Player'; nameBox.style.display='none'; naming=false; startGame(); } });
 
 // ---------- drawing ----------
 function bg(){ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#141d33'); g.addColorStop(1,'#0a0a1a'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
@@ -197,6 +203,12 @@ function drawTitle(){
   bg();
   txt('IBCS CHART SWIPE', 44, W/2, 180, '#fff', true, true);
   txt('Swipe right on compliant charts · left on the violations', 18, W/2, 222, 'rgba(96,168,255,0.9)', true, false);
+  if(naming){
+    // The HTML name box overlays the canvas centre — veil the area behind it so
+    // the instruction lines don't show through and overlap the input.
+    ctx.fillStyle='rgba(10,14,28,0.92)'; ctx.fillRect(0,240,W,H-240);
+    return;
+  }
   const lines=['A chart appears. Decide fast:','→ / swipe right  =  follows IBCS (a "Do")','← / swipe left   =  breaks IBCS (a "Don\u2019t")','Build combos, keep your 3 lives, clear the deck of '+RULES.length+' rules.'];
   let y=290; for(const l of lines){ txt(l,16,W/2,y,'rgba(255,255,255,0.75)',true,false); y+=30; }
   const a=Math.sin(titleAnim*3)*0.3+0.7; ctx.save(); ctx.globalAlpha=a; txt('Click to enter your name',20,W/2,H-110,'#fff',true,true); ctx.restore();
@@ -249,6 +261,8 @@ function loop(now){
       else { state='playing'; nextCard(); }
     }
   }
+  // Map logical 900x600 onto the super-sampled backing buffer for crisp output.
+  ctx.setTransform(cv.width/W, 0, 0, cv.height/H, 0, 0);
   bg();
   if(state==='title') drawTitle();
   else if(state==='playing'){ drawHUD(); if(card) drawCard(); drawButtons(); }

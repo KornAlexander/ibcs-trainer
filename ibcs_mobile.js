@@ -45,13 +45,16 @@
     canvas.style.height = Math.round(H * scale) + 'px';
   }
 
-  // A full-screen overlay nudging the player to rotate to landscape. Only shown
-  // on touch devices held in portrait, where the 3:2 games are cramped.
-  function buildOrientationHint() {
+  // A full-screen overlay nudging the player to rotate the device. Shown on
+  // touch devices held in the wrong orientation for the current game.
+  function buildOrientationHint(orientation) {
+    var toPortrait = orientation === 'portrait';
     var el = doc.createElement('div');
     el.id = 'ibcsOrientationHint';
     el.setAttribute('role', 'alert');
-    el.setAttribute('aria-label', 'Rotate your device to landscape mode to play.');
+    el.setAttribute('aria-label', toPortrait
+      ? 'Rotate your device to portrait mode to play.'
+      : 'Rotate your device to landscape mode to play.');
     el.style.cssText =
       'position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;' +
       'align-items:center;justify-content:center;text-align:center;gap:14px;' +
@@ -60,7 +63,8 @@
       '<div style="font-size:46px" aria-hidden="true">\uD83D\uDD04</div>' +
       '<div style="font-size:20px;font-weight:600">Rotate your device</div>' +
       '<div style="font-size:14px;opacity:0.7;max-width:300px">' +
-      'This game is best played in landscape. Turn your phone sideways to start.</div>';
+      'This game is best played in ' + (toPortrait ? 'portrait' : 'landscape') +
+      '. Turn your phone ' + (toPortrait ? 'upright' : 'sideways') + ' to start.</div>';
     return el;
   }
 
@@ -197,7 +201,7 @@
     opts = opts || {};
     if (!canvas || !doc || !doc.body) return { update: function () {} };
 
-    var hint = buildOrientationHint();
+    var hint = buildOrientationHint(opts.orientation);
     doc.body.appendChild(hint);
 
     var controls = null;
@@ -209,9 +213,12 @@
 
     function update() {
       fit(canvas);
-      var portrait = isTouch() && isPortrait();
-      hint.style.display = portrait ? 'flex' : 'none';
-      if (controls) controls.refresh(portrait);
+      var portrait = isPortrait();
+      // Show the rotate hint when a touch device is held the wrong way for this
+      // game (portrait games want portrait; everything else wants landscape).
+      var wrongOrient = isTouch() && (opts.orientation === 'portrait' ? !portrait : portrait);
+      hint.style.display = wrongOrient ? 'flex' : 'none';
+      if (controls) controls.refresh(isTouch() && portrait);
     }
 
     global.addEventListener('resize', update);

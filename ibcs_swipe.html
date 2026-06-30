@@ -9,7 +9,7 @@ canvas{border-radius:8px;box-shadow:0 0 60px rgba(80,160,255,0.25);max-width:100
 #nameContainer input{font-size:18px;padding:10px 15px;border-radius:8px;border:2px solid #60a8ff;background:rgba(20,30,50,0.9);color:#fff;text-align:center;width:240px}
 </style>
 </head><body>
-<canvas id="c" width="900" height="600" tabindex="0"></canvas>
+<canvas id="c" width="600" height="900" tabindex="0"></canvas>
 <div id="nameContainer">
   <label style="color:#fff;font-size:20px;display:block;margin-bottom:12px">Enter your name:</label>
   <input id="playerNameInput" type="text" maxlength="20" placeholder="Player" />
@@ -24,13 +24,13 @@ canvas{border-radius:8px;box-shadow:0 0 60px rgba(80,160,255,0.25);max-width:100
 (() => {
 "use strict";
 const cv = document.getElementById('c'), ctx = cv.getContext('2d', { alpha:false });
-const W = 900, H = 600;
+const W = 600, H = 900;          // portrait: card-swipe plays upright on mobile
 // Render the backing buffer ABOVE the displayed size so the CSS up-scaling done
 // by makeResponsive() never blurs the text / vector charts. All drawing stays in
-// logical 900x600 coords; loop() re-applies the matching transform each frame.
+// logical 600x900 coords; loop() re-applies the matching transform each frame.
 const SS = Math.max(1.5, Math.min(2.5, (window.devicePixelRatio || 1) * 1.6));
 cv.width = Math.round(W * SS); cv.height = Math.round(H * SS);
-if (window.IBCSMobile) window.IBCSMobile.makeResponsive(cv);
+if (window.IBCSMobile) window.IBCSMobile.makeResponsive(cv, { orientation:'portrait' });
 const charts = IBCSCharts(ctx);
 const {RULES} = window.IBCS;
 
@@ -134,7 +134,7 @@ function pointerDown(e){
   if(state==='feedback'){ advanceFeedback(); return; }
   if(state!=='playing') return;
   // buttons row
-  if(y>H-90){ if(x<W/2){ autoFly=-1; answer(false);} else { autoFly=1; answer(true);} return; }
+  if(y>H-100){ if(x<W/2){ autoFly=-1; answer(false);} else { autoFly=1; answer(true);} return; }
   dragging=true; dragStart=x;
 }
 function pointerMove(e){ if(dragging){ const {x}=canvasXY(e); dragX=x-dragStart; e.preventDefault&&e.preventDefault(); } }
@@ -156,77 +156,84 @@ nameInput.addEventListener('keydown',e=>{ if(e.code==='Enter'){ playerName=nameI
 function bg(){ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#141d33'); g.addColorStop(1,'#0a0a1a'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
 
 function drawCard(){
-  const cw=380, ch=380;
-  const cx=W/2 + dragX, cy=255;
-  const rot=dragX*0.0011;
+  const cw=480, ch=560;
+  const cx=W/2 + dragX, cy=412;
+  const rot=dragX*0.0010;
   ctx.save();
   ctx.translate(cx,cy); ctx.rotate(rot);
   // card body
-  ctx.fillStyle='#fbfdff'; rr(-cw/2,-ch/2,cw,ch,18); ctx.fill();
+  ctx.fillStyle='#fbfdff'; rr(-cw/2,-ch/2,cw,ch,20); ctx.fill();
   ctx.lineWidth=2; ctx.strokeStyle='#dde3ec'; ctx.stroke();
   // chart inside — matched do/don't pair: identical neutral style, only the
   // genuine IBCS violation differs (no colour/bitmap tell).
-  charts.pair(card.rule, card.compliant, -cw/2+44, -ch/2+44, cw-88, ch-150);
+  charts.pair(card.rule, card.compliant, -cw/2+50, -ch/2+48, cw-100, ch-198);
   // label
-  txt(card.rule.pillar+' · '+card.rule.sub, 15, 0, ch/2-66, '#5a6678', true, true);
-  txt(card.rule.title, 17, 0, ch/2-42, '#1a2230', true, true);
-  txt(card.rule.code, 13, 0, ch/2-20, '#90a0b5', true, false);
+  txt(card.rule.pillar+' · '+card.rule.sub, 15, 0, ch/2-92, '#5a6678', true, true);
+  txt(card.rule.title, 19, 0, ch/2-62, '#1a2230', true, true);
+  txt(card.rule.code, 13, 0, ch/2-34, '#90a0b5', true, false);
   // swipe hint stamps
   const a=Math.min(1,Math.abs(dragX)/110);
-  if(dragX>8){ ctx.save();ctx.globalAlpha=a;ctx.strokeStyle='#37a76a';ctx.lineWidth=4;rr(-cw/2+20,-ch/2+20,150,52,8);ctx.stroke();txt('COMPLIANT',20,-cw/2+95,-ch/2+54,'#37a76a',true,true);ctx.restore(); }
-  if(dragX<-8){ ctx.save();ctx.globalAlpha=a;ctx.strokeStyle='#e23b3b';ctx.lineWidth=4;rr(cw/2-170,-ch/2+20,150,52,8);ctx.stroke();txt('VIOLATES',20,cw/2-95,-ch/2+54,'#e23b3b',true,true);ctx.restore(); }
+  if(dragX>8){ ctx.save();ctx.globalAlpha=a;ctx.strokeStyle='#37a76a';ctx.lineWidth=4;rr(-cw/2+22,-ch/2+22,168,54,8);ctx.stroke();txt('COMPLIANT',20,-cw/2+106,-ch/2+57,'#37a76a',true,true);ctx.restore(); }
+  if(dragX<-8){ ctx.save();ctx.globalAlpha=a;ctx.strokeStyle='#e23b3b';ctx.lineWidth=4;rr(cw/2-190,-ch/2+22,168,54,8);ctx.stroke();txt('VIOLATES',20,cw/2-106,-ch/2+57,'#e23b3b',true,true);ctx.restore(); }
   ctx.restore();
 }
 
 function drawHUD(){
-  txt('SCORE '+score, 20, 24, 40, '#fff', false, true);
-  txt('Combo x'+(combo+1), 14, 24, 62, combo>0?'#37d67a':'#7a8499', false, false);
+  txt('SCORE '+score, 22, 24, 44, '#fff', false, true);
+  txt('Combo x'+(combo+1), 14, 24, 68, combo>0?'#37d67a':'#7a8499', false, false);
   // lives
-  for(let i=0;i<3;i++){ ctx.fillStyle=i<lives?'#e23b3b':'#3a3f4a'; ctx.beginPath(); const hx=W-40-i*30, hy=36; ctx.moveTo(hx,hy+4); ctx.bezierCurveTo(hx,hy,hx-8,hy-2,hx-8,hy+5); ctx.bezierCurveTo(hx-8,hy+12,hx,hy+14,hx,hy+18); ctx.bezierCurveTo(hx,hy+14,hx+8,hy+12,hx+8,hy+5); ctx.bezierCurveTo(hx+8,hy-2,hx,hy,hx,hy+4); ctx.fill(); }
-  txt('Cards left: '+deck.length, 13, W-24, 66, '#7a8499', false, false); ctx.textAlign='left';
+  for(let i=0;i<3;i++){ ctx.fillStyle=i<lives?'#e23b3b':'#3a3f4a'; ctx.beginPath(); const hx=W-34-i*28, hy=40; ctx.moveTo(hx,hy+4); ctx.bezierCurveTo(hx,hy,hx-8,hy-2,hx-8,hy+5); ctx.bezierCurveTo(hx-8,hy+12,hx,hy+14,hx,hy+18); ctx.bezierCurveTo(hx,hy+14,hx+8,hy+12,hx+8,hy+5); ctx.bezierCurveTo(hx+8,hy-2,hx,hy,hx,hy+4); ctx.fill(); }
+  ctx.fillStyle='#7a8499'; ctx.font="13px 'Segoe UI',system-ui,sans-serif"; ctx.textAlign='right'; ctx.textBaseline='alphabetic'; ctx.fillText('Cards left: '+deck.length, W-22, 70); ctx.textAlign='left';
   // timer bar
-  const tw=(cardTimer/ROUND_TIME); ctx.fillStyle='#1c2740'; rr(W/2-190,96,380,8,4); ctx.fill();
-  ctx.fillStyle=tw<0.3?'#e23b3b':'#60a8ff'; rr(W/2-190,96,380*Math.max(0,tw),8,4); ctx.fill();
+  const tbw=W-80, tbx=W/2-tbw/2, tw=(cardTimer/ROUND_TIME);
+  ctx.fillStyle='#1c2740'; rr(tbx,96,tbw,8,4); ctx.fill();
+  ctx.fillStyle=tw<0.3?'#e23b3b':'#60a8ff'; rr(tbx,96,tbw*Math.max(0,tw),8,4); ctx.fill();
 }
 
 function drawButtons(){
   // left = violates, right = compliant
-  ctx.fillStyle='rgba(226,59,59,0.15)'; rr(W/2-200,H-86,180,56,12); ctx.fill();
-  ctx.strokeStyle='#e23b3b'; ctx.lineWidth=2; rr(W/2-200,H-86,180,56,12); ctx.stroke();
-  txt('✗  Violates  (←)', 17, W/2-110, H-52, '#e23b3b', true, true);
-  ctx.fillStyle='rgba(55,167,106,0.15)'; rr(W/2+20,H-86,180,56,12); ctx.fill();
-  ctx.strokeStyle='#37a76a'; ctx.lineWidth=2; rr(W/2+20,H-86,180,56,12); ctx.stroke();
-  txt('Compliant ✓ (→)', 17, W/2+110, H-52, '#37d67a', true, true);
+  const bw=252, bh=60, by=H-92, lx=28, rx=W-28-bw;
+  ctx.fillStyle='rgba(226,59,59,0.15)'; rr(lx,by,bw,bh,12); ctx.fill();
+  ctx.strokeStyle='#e23b3b'; ctx.lineWidth=2; rr(lx,by,bw,bh,12); ctx.stroke();
+  txt('✗  Violates  (←)', 17, lx+bw/2, by+bh/2+5, '#e23b3b', true, true);
+  ctx.fillStyle='rgba(55,167,106,0.15)'; rr(rx,by,bw,bh,12); ctx.fill();
+  ctx.strokeStyle='#37a76a'; ctx.lineWidth=2; rr(rx,by,bw,bh,12); ctx.stroke();
+  txt('Compliant ✓ (→)', 17, rx+bw/2, by+bh/2+5, '#37d67a', true, true);
 }
 
 function drawTitle(){
   bg();
-  txt('IBCS CHART SWIPE', 44, W/2, 180, '#fff', true, true);
-  txt('Swipe right on compliant charts · left on the violations', 18, W/2, 222, 'rgba(96,168,255,0.9)', true, false);
+  txt('IBCS CHART SWIPE', 34, W/2, 150, '#fff', true, true);
+  txt('Swipe right on compliant charts · left on the violations', 14, W/2, 184, 'rgba(96,168,255,0.9)', true, false);
   if(naming){
     // The HTML name box overlays the canvas centre — veil the area behind it so
     // the instruction lines don't show through and overlap the input.
-    ctx.fillStyle='rgba(10,14,28,0.92)'; ctx.fillRect(0,240,W,H-240);
+    ctx.fillStyle='rgba(10,14,28,0.92)'; ctx.fillRect(0,210,W,H-210);
     return;
   }
-  const lines=['A chart appears. Decide fast:','→ / swipe right  =  follows IBCS (a "Do")','← / swipe left   =  breaks IBCS (a "Don\u2019t")','Build combos, keep your 3 lives, clear the deck of '+RULES.length+' rules.'];
-  let y=290; for(const l of lines){ txt(l,16,W/2,y,'rgba(255,255,255,0.75)',true,false); y+=30; }
-  const a=Math.sin(titleAnim*3)*0.3+0.7; ctx.save(); ctx.globalAlpha=a; txt('Click to enter your name',20,W/2,H-110,'#fff',true,true); ctx.restore();
+  const lines=['A chart appears. Decide fast:','→ / swipe right  =  follows IBCS (a "Do")','← / swipe left   =  breaks IBCS (a "Don\u2019t")','Build combos, keep your 3 lives,','clear the deck of '+RULES.length+' rules.'];
+  let y=252; for(const l of lines){ txt(l,15,W/2,y,'rgba(255,255,255,0.78)',true,false); y+=32; }
+  const a=Math.sin(titleAnim*3)*0.3+0.7; ctx.save(); ctx.globalAlpha=a; txt('Click to enter your name',20,W/2,H-170,'#fff',true,true); ctx.restore();
 }
 
 function drawFeedback(){
-  // keep the card frozen behind a banner
+  // keep the card frozen behind a bottom-sheet banner
   drawHUD(); drawCard(); drawButtons();
   const r=feedback;
-  const bh=150, by=H/2-bh/2;
-  ctx.fillStyle='rgba(8,12,24,0.82)'; ctx.fillRect(0,by,W,bh);
-  ctx.fillStyle=r.right?'#37d67a':'#e23b3b'; ctx.fillRect(0,by,6,bh);
+  const bh=232, by=H-92-bh-12;          // sits just above the answer buttons
+  ctx.fillStyle='rgba(8,12,24,0.92)'; rr(16,by,W-32,bh,14); ctx.fill();
+  ctx.fillStyle=r.right?'#37d67a':'#e23b3b'; ctx.fillRect(16,by,6,bh);
   const verdict = r.right ? 'Correct!' : 'Not quite.';
-  const truth = r.shown ? 'That chart is COMPLIANT.' : 'That chart VIOLATES IBCS.';
-  txt(verdict+'  '+truth, 22, W/2, by+34, r.right?'#37d67a':'#ff7a7a', true, true);
-  txt(r.rule.code+' — '+r.rule.title, 15, W/2, by+62, '#cfe0ff', true, true);
-  txt('DO: '+r.rule.do, 14, W/2, by+92, '#9fe6bd', true, false);
-  const dl=wrap("DON'T: "+r.rule.dont,14,W-120); txt(dl[0], 14, W/2, by+116, '#f3b0b0', true, false);
+  const truth = r.shown ? 'This chart is COMPLIANT.' : 'This chart VIOLATES IBCS.';
+  txt(verdict, 24, W/2, by+40, r.right?'#37d67a':'#ff7a7a', true, true);
+  txt(truth, 15, W/2, by+66, '#cfe0ff', true, false);
+  txt(r.rule.code+' — '+r.rule.title, 14, W/2, by+96, '#cfe0ff', true, true);
+  let yy=by+124;
+  const dol=wrap('DO: '+r.rule.do,13,W-72);
+  for(let i=0;i<Math.min(2,dol.length);i++){ txt(dol[i],13,W/2,yy,'#9fe6bd',true,false); yy+=19; }
+  yy+=4;
+  const dl=wrap("DON'T: "+r.rule.dont,13,W-72);
+  for(let i=0;i<Math.min(2,dl.length);i++){ txt(dl[i],13,W/2,yy,'#f3b0b0',true,false); yy+=19; }
   if(feedbackTotalT - feedbackT >= 0.35){
     const a=Math.sin(titleAnim*4)*0.25+0.6; ctx.save(); ctx.globalAlpha=a;
     txt('tap / press → to continue', 12, W/2, by+bh-12, '#9fb0c8', true, true); ctx.restore();
@@ -237,12 +244,12 @@ function drawOver(){
   bg();
   const dur=((performance.now()-startTime)/1000);
   const won = lives>0;
-  txt(won?'DECK CLEARED!':'OUT OF LIVES', 40, W/2, 150, won?'#37d67a':'#ff7a7a', true, true);
-  txt('Final score: '+score, 26, W/2, 210, '#fff', true, true);
+  txt(won?'DECK CLEARED!':'OUT OF LIVES', 34, W/2, 220, won?'#37d67a':'#ff7a7a', true, true);
+  txt('Final score: '+score, 24, W/2, 272, '#fff', true, true);
   const acc = answered? Math.round(correct/answered*100):0;
   const rows=[['Cards answered',answered],['Correct',correct+'  ('+acc+'%)'],['Best combo','x'+(best+1)],['Violations caught',violationsCaught],['Time',Math.round(dur)+'s']];
-  let y=262; for(const [k,v] of rows){ txt(k,16,W/2-150,y,'#9fb0c8',false,false); ctx.textAlign='right'; txt(String(v),16,W/2+150,y,'#fff',false,true); ctx.textAlign='left'; y+=30; }
-  const a=Math.sin(titleAnim*3)*0.3+0.7; ctx.save(); ctx.globalAlpha=a; txt('Press R or click to play again',18,W/2,H-90,'#fff',true,true); ctx.restore();
+  let y=340; for(const [k,v] of rows){ txt(k,16,W/2-170,y,'#9fb0c8',false,false); ctx.textAlign='right'; txt(String(v),16,W/2+170,y,'#fff',false,true); ctx.textAlign='left'; y+=36; }
+  const a=Math.sin(titleAnim*3)*0.3+0.7; ctx.save(); ctx.globalAlpha=a; txt('Press R or click to play again',18,W/2,H-150,'#fff',true,true); ctx.restore();
 }
 
 // ---------- loop ----------

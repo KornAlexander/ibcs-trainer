@@ -31,6 +31,20 @@
     return global.innerHeight > global.innerWidth;
   }
 
+  // True only for real phones. Deliberately stricter than isTouch(): touchscreen
+  // laptops/desktops report maxTouchPoints > 0 but must NOT get the rotate-device
+  // nag — only actual mobiles should. Uses the UA-CH mobile flag / UA string, and
+  // falls back to (coarse pointer AND a phone-sized screen).
+  function isPhone() {
+    var nav = global.navigator || {};
+    var ua = nav.userAgent || '';
+    if (/Mobi|Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini|Windows Phone/i.test(ua)) return true;
+    if (nav.userAgentData && nav.userAgentData.mobile === true) return true;
+    var coarse = !!(global.matchMedia && global.matchMedia('(pointer: coarse)').matches);
+    var small = Math.min(global.innerWidth || 0, global.innerHeight || 0) <= 560;
+    return coarse && small;
+  }
+
   // Scale the canvas element (CSS pixels) to fit the viewport, preserving the
   // canvas's intrinsic aspect ratio. Never enlarges past the point where it
   // would overflow either axis.
@@ -214,9 +228,9 @@
     function update() {
       fit(canvas);
       var portrait = isPortrait();
-      // Show the rotate hint when a touch device is held the wrong way for this
-      // game (portrait games want portrait; everything else wants landscape).
-      var wrongOrient = isTouch() && (opts.orientation === 'portrait' ? !portrait : portrait);
+      // Only nag REAL phones to rotate (portrait games want portrait; the rest
+      // want landscape). Desktops — even touchscreen ones — are never nagged.
+      var wrongOrient = isPhone() && (opts.orientation === 'portrait' ? !portrait : portrait);
       hint.style.display = wrongOrient ? 'flex' : 'none';
       if (controls) controls.refresh(isTouch() && portrait);
     }

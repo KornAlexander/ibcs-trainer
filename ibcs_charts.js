@@ -182,6 +182,63 @@
           dLine(x, y + h, x + w, y + h, '#9aa3b0', 1); dLine(x, y, x, y + h, '#9aa3b0', 1);
           vBars(x, y, w, h, vals, (bx, by, bw, bh) => fRect(bx, by, bw, bh, '#37a76a')); return;
         }
+        case 'column': {
+          dLine(x, y + h, x + w, y + h, '#9aa3b0', 1.2);
+          vBars(x, y, w, h, vals, (bx, by, bw, bh) => fRect(bx, by, bw, bh, '#4a5160')); return;
+        }
+        case 'gauge': {
+          const r = Math.min(w, h * 1.7) / 2, gx = cx, gy = y + h * 0.92;
+          ctx.lineWidth = Math.max(2.5, h * 0.2); ctx.lineCap = 'butt';
+          const seg = [['#37a76a', Math.PI, Math.PI * 1.34], ['#e2a93b', Math.PI * 1.34, Math.PI * 1.67], ['#e23b3b', Math.PI * 1.67, Math.PI * 2]];
+          for (const s of seg) { ctx.strokeStyle = s[0]; ctx.beginPath(); ctx.arc(gx, gy, r, s[1], s[2]); ctx.stroke(); }
+          const na = Math.PI * 1.72; ctx.strokeStyle = '#23272e'; ctx.lineWidth = Math.max(1.6, h * 0.09); ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + Math.cos(na) * r * 0.92, gy + Math.sin(na) * r * 0.92); ctx.stroke();
+          ctx.fillStyle = '#23272e'; ctx.beginPath(); ctx.arc(gx, gy, Math.max(1.6, h * 0.09), 0, Math.PI * 2); ctx.fill(); return;
+        }
+        case 'radar': {
+          const r = Math.min(w, h) / 2 * 0.94, n = 5;
+          const pt = (rad, k) => [cx + Math.cos(-Math.PI / 2 + k * 2 * Math.PI / n) * rad, cy + Math.sin(-Math.PI / 2 + k * 2 * Math.PI / n) * rad];
+          ctx.strokeStyle = '#c0c8d0'; ctx.lineWidth = 0.8;
+          for (let ring = 1; ring <= 2; ring++) { ctx.beginPath(); for (let k = 0; k < n; k++) { const p = pt(r * ring / 2, k); k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } ctx.closePath(); ctx.stroke(); }
+          for (let k = 0; k < n; k++) { const p = pt(r, k); dLine(cx, cy, p[0], p[1], '#c0c8d0', 0.8); }
+          const dv = [0.95, 0.5, 0.85, 0.4, 0.7];
+          ctx.fillStyle = 'rgba(59,111,226,0.5)'; ctx.strokeStyle = '#2b6fe2'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); for (let k = 0; k < n; k++) { const p = pt(r * dv[k], k); k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } ctx.closePath(); ctx.fill(); ctx.stroke(); return;
+        }
+        case 'funnel': {
+          const cols = ['#3b6fe2', '#37a76a', '#e2a93b', '#e23b3b'], n = cols.length, gap = 1, segH = (h - gap * (n - 1)) / n;
+          for (let i = 0; i < n; i++) { const wTop = w * (1 - i * 0.22), wBot = w * (1 - (i + 1) * 0.22), yt = y + i * (segH + gap);
+            fPoly([[cx - wTop / 2, yt], [cx + wTop / 2, yt], [cx + wBot / 2, yt + segH], [cx - wBot / 2, yt + segH]], cols[i]); }
+          return;
+        }
+        case 'ring': {
+          const r = Math.min(w, h) / 2;
+          pieSlices(cx, cy, r, ['#e23b3b', '#3b6fe2', '#37a76a', '#e2a93b', '#8e5bd0'], [3, 2, 2, 1.5, 1.5]);
+          ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, r * 0.5, 0, Math.PI * 2); ctx.fill();
+          sCir(cx, cy, r, '#ffffff', 1); return;
+        }
+        case 'traffic': {
+          const r = Math.min(w / 2, h / 6) * 0.92;
+          fRect(cx - r - 2, y, (r + 2) * 2, h, '#2b2f38');
+          const cols = ['#e23b3b', '#e2a93b', '#37a76a'];
+          for (let i = 0; i < 3; i++) { const cyl = y + h * (i + 0.5) / 3; ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.arc(cx, cyl, r, 0, Math.PI * 2); ctx.fill(); }
+          return;
+        }
+        case 'spaghetti': {
+          dLine(x, y + h, x + w, y + h, '#c0c8d0', 1);
+          const pal = ['#e23b3b', '#3b6fe2', '#37a76a', '#e2a93b', '#8e5bd0'];
+          for (let s = 0; s < pal.length; s++) { ctx.strokeStyle = pal[s]; ctx.lineWidth = 1.4; ctx.beginPath();
+            for (let i = 0; i <= 4; i++) { const px = x + w * i / 4, py = y + h * (0.2 + 0.6 * Math.abs(Math.sin(i * 1.7 + s * 1.3))); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); }
+          return;
+        }
+        case 'smallMultiples': {
+          const gx = 2, gy = 2, cw = (w - gx) / 2, chh = (h - gy) / 2;
+          const sets = [[0.5, 0.8, 0.6], [0.7, 0.4, 0.9], [0.6, 0.9, 0.5], [0.4, 0.7, 0.85]];
+          for (let q = 0; q < 4; q++) { const ox2 = x + (q % 2) * (cw + gx), oy2 = y + Math.floor(q / 2) * (chh + gy);
+            dLine(ox2, oy2 + chh, ox2 + cw, oy2 + chh, '#c0c8d0', 0.6);
+            vBars(ox2, oy2, cw, chh, sets[q], (bx, by, bw, bh) => fRect(bx, by, bw, bh, '#4a5160')); }
+          return;
+        }
       }
       // column-based kinds: column / colorful / mono / generic
       let palette;

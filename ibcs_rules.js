@@ -124,15 +124,15 @@ const STAGES = [
   {pillar:'EXPRESS', area:'Composition', world:'The Chart Zoo', color:'#e2a93b', theme:'volcano', form:'flameling',
    art:{e:'pie', g:'column'}, subs:[
     {code:'EX 1', title:'Use appropriate visuals', rules:[
-      ['EX 1.1','Use appropriate chart types','Match chart to message','Pick the wrong chart type'],
+      ['EX 1.1','Use appropriate chart types','Match chart to message','Pick the wrong chart type',{e:'funnel',g:'column'}],
       ['EX 1.2','Use appropriate table types','Use time / variance / cross tables as fit','Misuse table types'],
     ]},
     {code:'EX 2', title:'Replace inappropriate chart types', rules:[
-      ['EX 2.1','Replace pie and ring charts','Use bars / columns','Use pie / ring charts'],
-      ['EX 2.2','Replace gauges, speedometers','Use bars with reference lines','Use gauges / speedometers'],
-      ['EX 2.3','Replace radar and funnel charts','Use bar charts','Use radar / funnel charts'],
-      ['EX 2.4','Replace spaghetti charts','Use small multiples / highlighted line','Overplot many lines'],
-      ['EX 2.5','Replace traffic lights','Use signed values + variance bars','Use traffic-light symbols',{e:'bigNumber',g:'deviation'}],
+      ['EX 2.1','Replace pie and ring charts','Use bars / columns','Use pie / ring charts',{e:'ring',g:'column'}],
+      ['EX 2.2','Replace gauges, speedometers','Use bars with reference lines','Use gauges / speedometers',{e:'gauge',g:'column'}],
+      ['EX 2.3','Replace radar and funnel charts','Use bar charts','Use radar / funnel charts',{e:'radar',g:'column'}],
+      ['EX 2.4','Replace spaghetti charts','Use small multiples / highlighted line','Overplot many lines',{e:'spaghetti',g:'smallMultiples'}],
+      ['EX 2.5','Replace traffic lights','Use signed values + variance bars','Use traffic-light symbols',{e:'traffic',g:'deviation'}],
     ]},
     {code:'EX 3', title:'Replace inappropriate representations', rules:[
       ['EX 3.1','Prefer quantitative representations','Use numbers over icons / symbols','Replace numbers with icons'],

@@ -151,7 +151,17 @@
         case 'barDark':
           vBars(x, y, w, h, vals, (bx, by, bw, bh) => fRect(bx, by, bw, bh, '#23272e')); return;
         case 'bigNumber': {
-          dText('1.2M', Math.max(8, Math.min(h * 0.9, 22)), cx, cy, '#3a3f4a', true, true); return;
+          // "Avoid long numbers": show the overly long, fully-written figure
+          // (it rounds to the DO's "1.2M"). Auto-fit to width; never spills.
+          ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const num = '1,234,567';
+          let bfs = Math.min(h * 0.5, 22);
+          ctx.font = 'bold ' + bfs + "px 'Segoe UI',system-ui,sans-serif";
+          const mw = ctx.measureText(num).width;
+          if (mw > w * 0.92) { bfs = bfs * w * 0.92 / mw; ctx.font = 'bold ' + bfs + "px 'Segoe UI',system-ui,sans-serif"; }
+          ctx.fillStyle = '#3a3f4a'; ctx.fillText(num, cx, cy);
+          ctx.restore(); return;
         }
         case 'deviation': {
           const dv = [0.6, -0.35, 0.45, -0.7, 0.3];

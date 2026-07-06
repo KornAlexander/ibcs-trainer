@@ -290,7 +290,8 @@
         case 'labelAll': { dLine(x,y+h,x+w,y+h,GD,1); const lv=[1.0,0.09,0.72,0.06,0.48],lb=[100,9,72,6,48]; const lp=h*0.2,lfs=Math.max(4,Math.min(lp*0.85,(w/lv.length)*0.62,8)); vBars(x,y+lp,w,h-lp,lv,(bx,by,bw,bh,i)=>{fRect(bx,by,bw,bh,GREY); dText(String(lb[i]),lfs,bx+bw/2,by-lfs*0.72,DK,true,true);}); return; }
         case 'labelKey': { dLine(x,y+h,x+w,y+h,GD,1); const lv=[1.0,0.09,0.72,0.06,0.48],lb=[100,9,72,6,48]; const lp=h*0.2,lfs=Math.max(4,Math.min(lp*0.85,(w/lv.length)*0.62,8)); vBars(x,y+lp,w,h-lp,lv,(bx,by,bw,bh,i)=>{const k=lv[i]>=0.15; fRect(bx,by,bw,bh,k?GREY:'#c2c8d1'); if(k)dText(String(lb[i]),lfs,bx+bw/2,by-lfs*0.72,DK,true,true);}); return; }
         case 'roundNumber': { dText('1.2M',Math.min(h*0.8,13),cx,cy,GRN,true,true); return; }
-        case 'overLabel': { dLine(x,y+h,x+w,y+h,GD,1); vBars(x,y+4,w,h-4,vals,(bx,by,bw,bh)=>{fRect(bx,by,bw,bh,GREY); fRect(bx,by-3.4,bw,2.3,RED);}); return; }
+        case 'overLabel': { dLine(x,y+h,x+w,y+h,GD,1); const ov=[0.34,0.5,0.63,0.78,1.0,0.81,0.6,0.43,0.31],ol=[34,50,63,78,100,81,60,43,31]; const op=h*0.2,ofs=Math.max(3.5,Math.min(op*0.82,(w/ov.length)*0.72,7)); vBars(x,y+op,w,h-op,ov,(bx,by,bw,bh,i)=>{fRect(bx,by,bw,bh,GREY); dText(String(ol[i]),ofs,bx+bw/2,by-ofs*0.7,DK,true,true);}); return; }
+        case 'labelFew': { dLine(x,y+h,x+w,y+h,GD,1); const ov=[0.34,0.5,0.63,0.78,1.0,0.81,0.6,0.43,0.31],ol=[34,50,63,78,100,81,60,43,31]; const op=h*0.2,ofs=Math.max(4,Math.min(op*0.95,(w/ov.length)*1.1,11)); vBars(x,y+op,w,h-op,ov,(bx,by,bw,bh,i)=>{const key=(i===4); fRect(bx,by,bw,bh,key?GREY:'#aeb7c2'); if(key)dText(String(ol[i]),ofs,bx+bw/2,by-ofs*0.7,DK,true,true);}); return; }
 
         // -- UNIFY --
         case 'mixTerms': { fRect(x,y+h*0.18,w*0.46,h*0.22,BLU); fRect(x+w*0.54,y+h*0.18,w*0.4,h*0.22,RED); fRect(x,y+h*0.58,w*0.34,h*0.22,GRN); fRect(x+w*0.42,y+h*0.58,w*0.52,h*0.22,AMB); return; }

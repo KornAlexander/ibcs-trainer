@@ -217,7 +217,7 @@ const ARTMAP = {
   'SI 3.1':{e:'gridlines',g:'dataLabels'},'SI 3.2':{e:'tableGrid',g:'tableClean'},
   'SI 4.1':{e:'textLong',g:'textShort'}, 'SI 4.2':{e:'textObvious',g:'textShort'},
   'SI 4.3':{e:'textDup',g:'textOnce'},   'SI 5.1':{e:'labelAll',g:'labelKey'},
-  'SI 5.2':{e:'bigNumber',g:'roundNumber'},'SI 5.3':{e:'overLabel',g:'clean'},
+  'SI 5.2':{e:'bigNumber',g:'roundNumber'},'SI 5.3':{e:'overLabel',g:'labelFew'},
   // UNIFY
   'UN 1.1':{e:'mixTerms',g:'oneTerm'},   'UN 1.2':{e:'mixUnits',g:'oneUnit'},
   'UN 2.1':{e:'msgVaried',g:'msgUniform'},'UN 2.2':{e:'titleVaried',g:'titleUniform'},

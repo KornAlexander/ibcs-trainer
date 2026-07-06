@@ -2081,6 +2081,40 @@ function updateLevelSelect(){
   if(cheatMsgTimer>0)cheatMsgTimer--;
 }
 
+// Given a rule level number, return its {f,r} floor/room in the tower.
+function levelFloorRoom(lvl){ const f=Math.floor((lvl-1)/14); return {f, r:(lvl-1)-f*14}; }
+
+// After a level-complete summary the office avatar strolls, inside the tower,
+// from the room just cleared to the next room — then that next level begins.
+let walkDwell=0;
+function walkToNextRoom(){
+  // Final rule cleared -> straight to the win screen (nothing to walk to).
+  if(currentLevel>=RULE_COUNT){ advanceLevel(); return; }
+  buildTowerArt();
+  const cur=levelFloorRoom(currentLevel), nxt=levelFloorRoom(currentLevel+1);
+  const fr=roomRect(cur.f,cur.r); avX=fr.x+fr.w/2; avY=fr.y+fr.h-3;
+  selFloor=nxt.f; selRoom=nxt.r; towerMode='focus'; menuCd=0; walkDwell=0;
+  // Start the camera on the cleared floor; it eases toward the target floor.
+  tscale=T_FOCUS_S; tcamX=clampTCamX(TOWER_W/2,T_FOCUS_S); tcamY=clampTCamY(floorCenterY(cur.f),T_FOCUS_S);
+  ttgtX=tcamX; ttgtY=tcamY; ttgtS=tscale;
+  state='towerwalk';
+}
+function updateTowerWalk(){
+  towerAnim++;
+  // Camera eases to keep the target room's floor framed (pans up when crossing floors).
+  ttgtS=T_FOCUS_S; ttgtX=clampTCamX(TOWER_W/2,T_FOCUS_S); ttgtY=clampTCamY(floorCenterY(selFloor),T_FOCUS_S);
+  tscale+=(ttgtS-tscale)*0.12; tcamX+=(ttgtX-tcamX)*0.12; tcamY+=(ttgtY-tcamY)*0.12;
+  // Steady, clearly visible stroll toward the next room.
+  const tr=roomRect(selFloor,selRoom), tx=tr.x+tr.w/2, ty=tr.y+tr.h-3;
+  const dx=tx-avX, dy=ty-avY, d=Math.hypot(dx,dy)||1, spd=Math.min(d,2.6);
+  avX+=dx/d*spd; avY+=dy/d*spd;
+  if(Math.abs(dx)>1.2 && Math.abs(dx)>Math.abs(dy)) avLeg+=0.34; else avLeg*=0.6;
+  // Let an impatient player skip the stroll.
+  if(keys.Enter||keys.NumpadEnter||keys.Space){ keys.Enter=false;keys.NumpadEnter=false;keys.Space=false; advanceLevel(); return; }
+  // Arrived at the door -> brief pause, then begin the level.
+  if(d<3){ if(++walkDwell>22) advanceLevel(); } else walkDwell=0;
+}
+
 // ---- Static building art (rendered once to an offscreen canvas, then blitted) ----
 let TOWER_ART=null;
 function buildTowerArt(){
@@ -2534,6 +2568,9 @@ function loop(){
     else if(anyKey&&!playerName){cv.style.display='none';nameContainer.style.display='block';nameInput.value='';nameInput.focus();anyKey=false;}
   }else if(state==='levelselect'){
     updateLevelSelect();drawLevelSelect();
+  }else if(state==='towerwalk'){
+    updateTowerWalk();
+    if(state==='towerwalk'){ drawLevelSelect(); dText('Walking to the next room\u2026',15,W/2,H-98,'rgba(255,255,255,0.9)',true,true,true); }
   }else if(state==='isoroom'){
     updateIsoRoom();if(state==='isoroom')drawIsoRoom();else if(state==='gameover'){drawGameOver(tick);winSfxPlayed=won;}
   }else if(state==='intro'){
@@ -2546,7 +2583,7 @@ function loop(){
     else{drawGameOver(tick);winSfxPlayed=won;}
   }else if(state==='levelcomplete'){
     completeTimer++;drawLevelComplete(completeTimer);
-    if((anyKey&&completeTimer>30)||completeTimer>LEVEL_SUMMARY_AUTO_ADVANCE_TICKS){anyKey=false;advanceLevel();}
+    if((anyKey&&completeTimer>30)||completeTimer>LEVEL_SUMMARY_AUTO_ADVANCE_TICKS){anyKey=false;walkToNextRoom();}
   }else if(state==='gameover'){
     drawGameOver(tick);tick++;
     if(keys.KeyR){playerName='';state='title';anyKey=false;winSfxPlayed=false;}

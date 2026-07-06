@@ -318,7 +318,7 @@
         case 'scaleHidden': { for(let q=0;q<2;q++){const ox2=x+q*(w/2); dLine(ox2,y+h,ox2+w/2-2,y+h,AX,0.8); const dd=q?[0.4,0.55,0.45]:[0.8,1.0,0.9]; vBars(ox2,y,w/2-2,h,dd,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY));} ctx.strokeStyle=RED; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+w/2-1,y); ctx.lineTo(x+w/2-1,y+h); ctx.stroke(); return; }
         case 'scaleMark': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y+h*0.18,w,h*0.82,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=RED; ctx.lineWidth=1.4; ctx.beginPath(); const yy=y+h*0.18; for(let i=0;i<=w;i+=3){const xx=x+i; i?ctx.lineTo(xx,yy+((i/3)%2?2:-2)):ctx.moveTo(xx,yy);} ctx.stroke(); return; }
         case 'outlierNone': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y,w,h,[0.4,0.5,0.45],(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); fRect(x+w*0.72,y-3,w*0.18,h+3,GREY); return; }
-        case 'outlierMark': { dLine(x,y+h,x+w,y+h,AX,1); vBars(x,y+5,w,h-5,[0.45,0.55,0.5,0.95],(bx,by,bw,bh,i)=>{fRect(bx,by,bw,bh,GREY); if(i===3)fPoly([[bx+bw/2-3,by],[bx+bw/2+3,by],[bx+bw/2,by-4]],RED);}); return; }
+        case 'outlierMark': { ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip(); dLine(x,y+h,x+w,y+h,AX,1); const dv=[0.42,0.56,0.48,0.9]; const op=h*0.32; vBars(x,y+op,w,h-op,dv,(bx,by,bw,bh,i)=>{fRect(bx,by,bw,bh,i===3?'#4a5160':GREY); if(i===3){const mx=bx+bw/2,tw=Math.max(8,Math.min(bw*1.1,24)),th=tw*0.85,ty=by-Math.max(2,th*0.16); fPoly([[mx-tw/2,ty],[mx+tw/2,ty],[mx,ty-th]],RED);}}); ctx.restore(); return; }
 
         // -- CHECK --
         case 'logAxis': { fRect(x,y,w,h,'#fff'); [0.5,0.78,0.92,1].forEach(t=>dLine(x,y+h*(1-t),x+w,y+h*(1-t),'#aeb7c2',0.8)); vBars(x,y,w,h,vals,(bx,by,bw,bh)=>fRect(bx,by,bw,bh,GREY)); ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h); return; }

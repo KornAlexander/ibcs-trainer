@@ -136,8 +136,10 @@
           for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke(); return;
         }
         case 'bar': {
-          const hv = [0.9, 0.6, 0.78, 0.45]; const bh = (h - 2) / hv.length - 2;
-          for (let i = 0; i < hv.length; i++) { const by = y + i * (bh + 2); fRect(x, by, Math.max(2, w * hv[i]), Math.max(2, bh), '#4a5160'); }
+          dLine(x, y, x, y + h, '#9aa3b0', 1.2); // value axis on the left
+          const hv = [0.95, 0.75, 0.58, 0.42, 0.28];
+          const gap = 2, bh = (h - gap * (hv.length - 1)) / hv.length;
+          for (let i = 0; i < hv.length; i++) { const by = y + i * (bh + gap); fRect(x, by, Math.max(2, w * hv[i]), Math.max(2, bh), '#4a5160'); }
           return;
         }
         case 'barSolid':

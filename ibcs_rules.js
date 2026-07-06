@@ -244,8 +244,8 @@ const ARTMAP = {
   'CO 5.1':{e:'spaghetti',g:'smallMultiples'},'CO 5.2':{e:'scattered',g:'grouped'},
   // EXPRESS
   'EX 1.1':{e:'funnel',g:'column'},      'EX 1.2':{e:'tableWrong',g:'tableRight'},
-  'EX 2.1':{e:'ring',g:'column'},        'EX 2.2':{e:'gauge',g:'column'},
-  'EX 2.3':{e:'radar',g:'column'},       'EX 2.4':{e:'spaghetti',g:'smallMultiples'},
+  'EX 2.1':{e:'ring',g:'bar'},        'EX 2.2':{e:'gauge',g:'bar'},
+  'EX 2.3':{e:'radar',g:'bar'},       'EX 2.4':{e:'spaghetti',g:'smallMultiples'},
   'EX 2.5':{e:'traffic',g:'deviation'},  'EX 3.1':{e:'iconQty',g:'numberQty'},
   'EX 3.2':{e:'textSlide',g:'dataSlide'},'EX 4.1':{e:'singleScenario',g:'scenarioStd'},
   'EX 4.2':{e:'bigNumber',g:'deviation'},'EX 5.1':{e:'oneHuge',g:'treeStruct'},
